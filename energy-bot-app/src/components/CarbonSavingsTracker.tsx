@@ -77,7 +77,7 @@ export const CarbonSavingsTracker: React.FC<Props> = ({ telemetry }) => {
           Ecological Impact.
         </h2>
         <p className="text-neutral-400 text-base sm:text-lg max-w-lg mx-auto">
-          Every kilowatt-hour orchestrated by VOLT-IQ eliminates fossil peaking plant generation.
+          Every kilowatt-hour orchestrated by Electra AI eliminates fossil peaking plant generation.
         </p>
       </div>
 

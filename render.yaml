@@ -1,7 +1,7 @@
 # Deploy this repository as a Render Blueprint.
 services:
   - type: web
-    name: volt-iq
+    name: electra-ai
     runtime: static
     rootDir: energy-bot-app
     buildCommand: npm ci --no-audit --no-fund && npm run build

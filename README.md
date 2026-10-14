@@ -1,4 +1,4 @@
-# ⚡ VOLT-IQ: Autonomous Energy Copilot & Microgrid OS
+# ⚡ Electra AI: Autonomous Energy Copilot & Microgrid OS
 
 > An intelligent, real-time microgrid management dashboard and autonomous voice/chat AI copilot that optimizes residential and commercial energy flows (Bifacial Solar generation, Battery Energy Storage Systems (BESS), smart sub-circuit appliance loads, and dynamic Time-of-Use / spot electricity tariffs).
 
@@ -6,7 +6,7 @@
 
 ## 🌟 Key Features
 
-1. **VOLT-IQ Autonomous AI Copilot (`EnergyBotChat`)**
+1. **Electra AI Autonomous AI Copilot (`EnergyBotChat`)**
    - Natural language energy advice engine.
    - Built-in Web Speech API voice recognition (STT) and dynamic speech synthesis (TTS).
    - Dynamic intent resolution for solar diversion, dynamic tariffs, EV charge windows, and microgrid islanding.

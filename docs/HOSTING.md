@@ -1,4 +1,4 @@
-# Host VOLT-IQ on Render and store audit PDFs in Supabase
+# Host Electra AI on Render and store audit PDFs in Supabase
 
 The current app is a React/Vite frontend with simulated telemetry and a local advice engine. Hosting it does not add PDF chat, authentication, document uploads, or a Supabase connection. Supabase Storage is the first backend prerequisite; retrieval and model inference will need a later server or Edge Function implementation.
 
@@ -11,7 +11,7 @@ The current app is a React/Vite frontend with simulated telemetry and a local ad
 
    | Setting | Value |
    | --- | --- |
-   | Name | `volt-iq` or another available name |
+   | Name | `electra-ai` or another available name |
    | Root Directory | `energy-bot-app` |
    | Build Command | `npm ci --no-audit --no-fund && npm run build` |
    | Publish Directory | `dist` |
@@ -28,7 +28,7 @@ Verify the deployed site: skip or play the intro; switch Today/Week/Month; toggl
 ## 2. Create a separate Supabase project
 
 1. Sign in at https://supabase.com/dashboard and choose **New project**.
-2. Select your organization, name the project `volt-iq`, and choose a region near your users (Mumbai if offered for your organization).
+2. Select your organization, name the project `electra-ai`, and choose a region near your users (Mumbai if offered for your organization).
 3. Generate a strong database password and save it in your password manager. Do not place it in source control or chat. Select a plan appropriate for your usage after checking the dashboard's current limits and pricing.
 4. Wait for provisioning, then open **SQL Editor → New query**.
 5. Paste and run `supabase/migrations/202610140001_energy_audit_storage.sql` from this repository.

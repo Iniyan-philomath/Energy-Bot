@@ -220,7 +220,7 @@ export function PowerIntro({ onFinish }: { onFinish: () => void }) {
       className={`power-intro ${stage}`}
       role="dialog"
       aria-modal="true"
-      aria-label="VOLT-IQ power sequence"
+      aria-label="Electra AI power sequence"
       initial={{ opacity: 1 }}
       exit={{ opacity: 0, scale: reduced ? 1 : 1.04 }}
       transition={{ duration: 0.5 }}
@@ -231,7 +231,7 @@ export function PowerIntro({ onFinish }: { onFinish: () => void }) {
       <div className="intro-grid" />
       <div className="intro-top">
         <span className="wordmark">
-          <Zap /> VOLT<span>—</span>IQ
+          <Zap /> ELECTRA<span className="wordmark-ai">AI</span>
         </span>
         <button ref={skip} onClick={onFinish} className="text-button">
           Skip intro <ArrowUpRight size={14} />

@@ -5,7 +5,7 @@
   --panel: #191d17;
   --mono: "SFMono-Regular", Consolas, monospace;
 }
-.volt-app {
+.electra-app {
   overflow: hidden;
 }
 .site-header {
@@ -35,8 +35,10 @@
   margin-right: 8px;
   display: flex;
 }
-.wordmark-dash {
-  font-weight: 400;
+.wordmark-ai {
+  font-weight: 500;
+  color: var(--lime);
+  margin-left: 5px;
 }
 .brand-caption {
   font-family: var(--mono);

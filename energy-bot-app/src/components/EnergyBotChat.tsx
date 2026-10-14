@@ -23,7 +23,7 @@ export const EnergyBotChat: React.FC<EnergyBotChatProps> = ({
       id: 'msg-1',
       sender: 'bot',
       timestamp: 'Just now',
-      text: "Hello. I am VOLT-IQ, your Autonomous Energy Copilot. I'm actively balancing your 4.8 kW solar generation, 13.5 kWh battery storage, and dynamic grid pricing in real time. What would you like to optimize?",
+      text: "Hello. I am Electra AI, your Autonomous Energy Copilot. I'm actively balancing your 4.8 kW solar generation, 13.5 kWh battery storage, and dynamic grid pricing in real time. What would you like to optimize?",
       metrics: [
         { label: 'Solar Flux', value: `${telemetry.solarGenerationKw.toFixed(1)} kW` },
         { label: 'Spot Price', value: `$${telemetry.currentTariffPerKwh.toFixed(2)}/kWh` },
@@ -332,7 +332,7 @@ export const EnergyBotChat: React.FC<EnergyBotChatProps> = ({
                     isListening ? 'text-amber-400' : isThinking ? 'text-purple-400 animate-spin-slow' : 'text-emerald-400'
                   }`} />
                   <span className="text-[10px] font-mono font-medium tracking-widest text-neutral-300 mt-1">
-                    VOLT-IQ
+                    Electra AI
                   </span>
                 </div>
               </div>
@@ -511,7 +511,7 @@ export const EnergyBotChat: React.FC<EnergyBotChatProps> = ({
                 type="text"
                 value={inputQuery}
                 onChange={(e) => setInputQuery(e.target.value)}
-                placeholder="Ask VOLT-IQ: 'How to cut 20% on next bill?' or 'Isolate microgrid'..."
+                placeholder="Ask Electra AI: 'How to cut 20% on next bill?' or 'Isolate microgrid'..."
                 className="flex-1 bg-white/[0.03] border border-white/10 focus:border-white/30 rounded-full px-5 py-3 text-sm text-white placeholder-neutral-500 focus:outline-none transition-all font-sans"
               />
 

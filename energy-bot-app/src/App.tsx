@@ -199,7 +199,7 @@ function EnergyChart({ period }: { period: Period }) {
 export default function App() {
   const [intro, setIntro] = useState(() => {
     try {
-      return !sessionStorage.getItem("volt-intro");
+      return !sessionStorage.getItem("electra-intro");
     } catch {
       return true;
     }
@@ -234,7 +234,7 @@ export default function App() {
   const finishIntro = useCallback(() => {
     setIntro(false);
     try {
-      sessionStorage.setItem("volt-intro", "1");
+      sessionStorage.setItem("electra-intro", "1");
     } catch {
       /* Session storage may be unavailable. */
     }
@@ -392,7 +392,7 @@ export default function App() {
     }, 650);
   };
   return (
-    <div ref={root} className="volt-app">
+    <div ref={root} className="electra-app">
       <AnimatePresence>
         {intro && <PowerIntro onFinish={finishIntro} />}
       </AnimatePresence>
@@ -402,11 +402,11 @@ export default function App() {
           Skip to dashboard
         </a>
         <header className="site-header">
-          <a href="#" className="wordmark" aria-label="VOLT-IQ home">
+          <a href="#" className="wordmark" aria-label="Electra AI home">
             <span className="brand-icon">
               <Zap size={22} fill="currentColor" />
             </span>
-            VOLT<span className="wordmark-dash">—</span>IQ
+            ELECTRA<span className="wordmark-ai">AI</span>
             <span className="brand-caption">ENERGY INTELLIGENCE</span>
           </a>
           <nav aria-label="Main navigation" className={menu ? "nav-open" : ""}>
@@ -718,7 +718,7 @@ export default function App() {
                 <div className="flow-core-ring">
                   <Zap size={35} fill="currentColor" />
                 </div>
-                <span>VOLT-IQ CORE</span>
+                <span>Electra AI CORE</span>
                 <small>Balancing your microgrid</small>
               </div>
               <div className="flow-connector">
@@ -893,7 +893,7 @@ export default function App() {
                     <Zap size={19} />
                   </span>
                   <div>
-                    <strong>VOLT-IQ Copilot</strong>
+                    <strong>Electra AI Copilot</strong>
                     <span>
                       <i className="status-dot" /> Online · Demo advisor
                     </span>
@@ -917,7 +917,7 @@ export default function App() {
                   {messages.map((m) => (
                     <div className={`chat-message ${m.role}`} key={m.id}>
                       {m.role === "assistant" && (
-                        <span className="message-label">VOLT-IQ</span>
+                        <span className="message-label">Electra AI</span>
                       )}
                       <p>{m.text}</p>
                       {m.action && (
@@ -1030,7 +1030,7 @@ export default function App() {
         </main>
         <footer className="site-footer">
           <a href="#" className="wordmark">
-            <Zap size={22} /> VOLT<span>—</span>IQ
+            <Zap size={22} /> ELECTRA<span className="wordmark-ai">AI</span>
           </a>
           <span>INTELLIGENCE FOR EVERY ELECTRON.</span>
           <button
@@ -1042,7 +1042,7 @@ export default function App() {
           >
             Replay power sequence <Power size={13} />
           </button>
-          <span>© {currentYear} VOLT-IQ</span>
+          <span>© {currentYear} Electra AI</span>
         </footer>
       </div>
       <AnimatePresence>
