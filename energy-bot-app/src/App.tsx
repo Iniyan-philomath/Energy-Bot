@@ -200,12 +200,12 @@ function EnergyChart({ period }: { period: Period }) {
 export default function App() {
   const [intro, setIntro] = useState(() => {
     try {
-      return !sessionStorage.getItem("electra-intro");
+      return !sessionStorage.getItem("electra-thunder-v2");
     } catch {
       return true;
     }
   });
-  const [sound, setSound] = useState(false);
+  const [sound, setSound] = useState(true);
   const [menu, setMenu] = useState(false);
   const [activeSection, setActiveSection] = useState("overview");
   const [devices, setDevices] = useState(initialDevices);
@@ -235,7 +235,7 @@ export default function App() {
   const finishIntro = useCallback(() => {
     setIntro(false);
     try {
-      sessionStorage.setItem("electra-intro", "1");
+      sessionStorage.setItem("electra-thunder-v2", "1");
     } catch {
       /* Session storage may be unavailable. */
     }
@@ -428,8 +428,19 @@ export default function App() {
             ))}
           </nav>
           <div className="header-actions">
+            <button
+              className="strike-trigger-button"
+              onClick={() => {
+                window.scrollTo({ top: 0, behavior: "smooth" });
+                setIntro(true);
+              }}
+              title="Trigger Thunder Strike & Lightning Flash"
+            >
+              <Zap size={14} className="text-neon-cyan animate-pulse" />
+              <span>STRIKE</span>
+            </button>
             <span className="system-live">
-              <span className="status-dot" /> System online
+              <span className="status-dot neon-pulse" /> System online
             </span>
             <button
               className="icon-button audio-toggle"
