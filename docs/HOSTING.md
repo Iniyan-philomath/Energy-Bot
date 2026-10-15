@@ -1,6 +1,6 @@
 # Host Electra AI on Render and store audit PDFs in Supabase
 
-The current app is a React/Vite frontend with simulated telemetry and a local advice engine. Hosting it does not add PDF chat, authentication, document uploads, or a Supabase connection. Supabase Storage is the first backend prerequisite; retrieval and model inference will need a later server or Edge Function implementation.
+The app has a React/Vite frontend plus a separate Node report API in `server/`. The dashboard remains a simulation. The API reads one configured private Supabase PDF and uses Groq for multilingual report answers and general electrical questions. Deploying the static site alone does not enable these API modes. Follow [REPORT_CHAT.md](REPORT_CHAT.md) to connect the existing live site. There is no client login or arbitrary PDF-upload interface yet.
 
 ## 1. Deploy the frontend
 
@@ -48,7 +48,7 @@ The policies allow an authenticated user to upload, read, update and delete file
 
 Find the **Project URL** and **publishable key** in the project's Connect dialog or API settings. Older projects may show an `anon` key instead. A publishable/anon key is intended for browser use with access policies; it does not replace user authentication.
 
-When a Supabase client is implemented, use:
+If a browser Supabase client is added later, it would use:
 
 - `VITE_SUPABASE_URL`: the project's HTTPS URL.
 - `VITE_SUPABASE_PUBLISHABLE_KEY`: the browser publishable key (or legacy anon key).
@@ -59,4 +59,4 @@ Before implementing login, set Supabase **Authentication â†’ URL Configuration â
 
 ## Current verification boundary
 
-The local frontend production build and browser interactions have been tested. The Supabase SQL has been reviewed and parsed but has not been executed against your project. Live upload, cross-user denial, signed download, and deployed-site checks must follow account provisioning. Project creation, Render deployment and PDF storage are only complete once their dashboards and service responses confirm success.
+The local frontend production build and browser interactions have been tested. The Supabase SQL has been reviewed and parsed but has not been executed against your project. Live upload, cross-user denial, signed download, and deployed-site checks must follow account provisioning. Project creation, Render deployment and PDF storage are only complete once their dashboards and service responses confirm success. The report API has additional tests and deployment requirements documented in REPORT_CHAT.md.

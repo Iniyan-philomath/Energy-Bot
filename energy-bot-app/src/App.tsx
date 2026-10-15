@@ -35,6 +35,7 @@ import {
 } from "./components/experience/ElectricExperience";
 import { playElectricClickSound, playHudChirpSound } from "./lib/soundFx";
 import { VoiceControls } from "./components/experience/VoiceControls";
+import { ConnectedCopilot } from "./components/experience/ConnectedCopilot";
 import "./App.css";
 const currentYear = new Date().getFullYear();
 
@@ -304,16 +305,14 @@ export default function App() {
         duration: 0.9,
         ease: "power3.out",
       });
-      gsap.utils
-        .toArray<HTMLElement>(".reveal")
-        .forEach((el) =>
-          gsap.from(el, {
-            y: 35,
-            opacity: 0,
-            duration: 0.8,
-            scrollTrigger: { trigger: el, start: "top 94%", once: true },
-          }),
-        );
+      gsap.utils.toArray<HTMLElement>(".reveal").forEach((el) =>
+        gsap.from(el, {
+          y: 35,
+          opacity: 0,
+          duration: 0.8,
+          scrollTrigger: { trigger: el, start: "top 94%", once: true },
+        }),
+      );
       gsap.to(".hero-art", {
         y: 70,
         ease: "none",
@@ -367,7 +366,7 @@ export default function App() {
       let action: Message["action"];
       if (/pdf|report|audit|document/.test(q))
         text =
-          "Document Q&A is the next phase. This frontend demo does not yet read uploaded audit reports. You can currently explore the simulated energy system.";
+          "Choose Audit report above to ask about the college PDF. This mode uses simulated household readings only.";
       else if (/ev|car|charg/.test(q)) {
         text =
           "Shift EV charging to 02:00–06:00 at the simulated off-peak tariff of $0.08/kWh. I can switch the charger off now and mark it for that window. This demo does not control real hardware.";
@@ -851,146 +850,158 @@ export default function App() {
             </div>
           </section>
           <section className="section-wrap copilot-section" id="copilot">
-            <div className="copilot-layout reveal">
-              <div className="copilot-copy">
-                <div className="eyebrow">
-                  <span>04 /</span> YOUR ENERGY ALLY
-                </div>
-                <div className="copilot-symbol">
-                  <Bot size={40} />
-                  <span className="status-dot" />
-                </div>
-                <h2>
-                  Complex energy.
-                  <br />
-                  <span>Simple conversation.</span>
-                </h2>
-                <p>
-                  No spreadsheets. No guesswork.
-                  <br />
-                  Just ask your personal energy copilot.
-                </p>
-                <div className="copilot-trust">
-                  <ShieldCheck size={16} /> Demo insights. You make the
-                  decisions.
-                </div>
-                <div className="prompt-list">
-                  {[
-                    "How can I lower my energy costs?",
-                    "How much battery backup do I have?",
-                    "What is my solar surplus?",
-                  ].map((q) => (
-                    <button key={q} disabled={thinking} onClick={() => ask(q)}>
-                      {q}
-                      <ArrowUpRight size={15} />
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div className="chat-panel">
-                <div className="chat-heading">
-                  <span className="chat-avatar">
-                    <Zap size={19} />
-                  </span>
-                  <div>
-                    <strong>Electra AI Copilot</strong>
-                    <span>
-                      <i className="status-dot" /> Online · Demo advisor
-                    </span>
-                  </div>
-                  <VoiceControls
-                    onTranscript={setInput}
-                    reply={
-                      messages.filter((m) => m.role === "assistant").at(-1)
-                        ?.text || ""
-                    }
-                    onNotice={notify}
-                  />
-                </div>
-                <div
-                  className="chat-messages"
-                  data-lenis-prevent
-                  role="log"
-                  aria-live="polite"
-                  aria-label="Copilot conversation"
-                >
-                  {messages.map((m) => (
-                    <div className={`chat-message ${m.role}`} key={m.id}>
-                      {m.role === "assistant" && (
-                        <span className="message-label">Electra AI</span>
-                      )}
-                      <p>{m.text}</p>
-                      {m.action && (
+            <ConnectedCopilot
+              demo={
+                <div className="copilot-layout reveal">
+                  <div className="copilot-copy">
+                    <div className="eyebrow">
+                      <span>04 /</span> YOUR ENERGY ALLY
+                    </div>
+                    <div className="copilot-symbol">
+                      <Bot size={40} />
+                      <span className="status-dot" />
+                    </div>
+                    <h2>
+                      Complex energy.
+                      <br />
+                      <span>Simple conversation.</span>
+                    </h2>
+                    <p>
+                      No spreadsheets. No guesswork.
+                      <br />
+                      Just ask your personal energy copilot.
+                    </p>
+                    <div className="copilot-trust">
+                      <ShieldCheck size={16} /> Demo insights. You make the
+                      decisions.
+                    </div>
+                    <div className="prompt-list">
+                      {[
+                        "How can I lower my energy costs?",
+                        "How much battery backup do I have?",
+                        "What is my solar surplus?",
+                      ].map((q) => (
                         <button
-                          className="chat-action"
-                          disabled={m.done}
-                          onClick={() => {
-                            if (m.action === "optimize") optimize();
-                            else if (m.action === "ev") {
-                              setDevices((v) =>
-                                v.map((d) =>
-                                  d.id === "ev" ? { ...d, active: false } : d,
-                                ),
-                              );
-                              notify(
-                                "EV charging deferred to 02:00–06:00 in this simulation.",
-                              );
-                            } else {
-                              setBatteryDischarge(true);
-                              notify("Battery discharge simulation activated.");
-                            }
-                            setMessages((v) =>
-                              v.map((a) =>
-                                a.id === m.id ? { ...a, done: true } : a,
-                              ),
-                            );
-                          }}
+                          key={q}
+                          disabled={thinking}
+                          onClick={() => ask(q)}
                         >
-                          {m.done ? <Check size={14} /> : <Zap size={14} />}{" "}
-                          {m.done
-                            ? "Applied to simulation"
-                            : "Apply to simulation"}
+                          {q}
+                          <ArrowUpRight size={15} />
                         </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="chat-panel">
+                    <div className="chat-heading">
+                      <span className="chat-avatar">
+                        <Zap size={19} />
+                      </span>
+                      <div>
+                        <strong>Electra AI Copilot</strong>
+                        <span>
+                          <i className="status-dot" /> Online · Demo advisor
+                        </span>
+                      </div>
+                      <VoiceControls
+                        onTranscript={setInput}
+                        reply={
+                          messages.filter((m) => m.role === "assistant").at(-1)
+                            ?.text || ""
+                        }
+                        onNotice={notify}
+                      />
+                    </div>
+                    <div
+                      className="chat-messages"
+                      data-lenis-prevent
+                      role="log"
+                      aria-live="polite"
+                      aria-label="Copilot conversation"
+                    >
+                      {messages.map((m) => (
+                        <div className={`chat-message ${m.role}`} key={m.id}>
+                          {m.role === "assistant" && (
+                            <span className="message-label">Electra AI</span>
+                          )}
+                          <p>{m.text}</p>
+                          {m.action && (
+                            <button
+                              className="chat-action"
+                              disabled={m.done}
+                              onClick={() => {
+                                if (m.action === "optimize") optimize();
+                                else if (m.action === "ev") {
+                                  setDevices((v) =>
+                                    v.map((d) =>
+                                      d.id === "ev"
+                                        ? { ...d, active: false }
+                                        : d,
+                                    ),
+                                  );
+                                  notify(
+                                    "EV charging deferred to 02:00–06:00 in this simulation.",
+                                  );
+                                } else {
+                                  setBatteryDischarge(true);
+                                  notify(
+                                    "Battery discharge simulation activated.",
+                                  );
+                                }
+                                setMessages((v) =>
+                                  v.map((a) =>
+                                    a.id === m.id ? { ...a, done: true } : a,
+                                  ),
+                                );
+                              }}
+                            >
+                              {m.done ? <Check size={14} /> : <Zap size={14} />}{" "}
+                              {m.done
+                                ? "Applied to simulation"
+                                : "Apply to simulation"}
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                      {thinking && (
+                        <div className="thinking">
+                          <span />
+                          <span />
+                          <span />
+                          <small>Connecting the dots</small>
+                        </div>
                       )}
+                      <div ref={chatEnd} />
                     </div>
-                  ))}
-                  {thinking && (
-                    <div className="thinking">
-                      <span />
-                      <span />
-                      <span />
-                      <small>Connecting the dots</small>
+                    <form
+                      className="chat-input"
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        ask(input);
+                      }}
+                    >
+                      <input
+                        aria-label="Ask your energy copilot"
+                        placeholder="Ask anything about your energy…"
+                        value={input}
+                        onChange={(e) => setInput(e.target.value)}
+                        maxLength={2000}
+                      />
+                      <button
+                        aria-label="Send message"
+                        disabled={!input.trim() || thinking}
+                      >
+                        <ArrowUpRight size={21} />
+                      </button>
+                    </form>
+                    <div className="chat-disclaimer">
+                      SIMULATED TELEMETRY{" "}
+                      <span>POWERED BY CURIOSITY. GUIDED BY DATA.</span>
                     </div>
-                  )}
-                  <div ref={chatEnd} />
+                  </div>
                 </div>
-                <form
-                  className="chat-input"
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    ask(input);
-                  }}
-                >
-                  <input
-                    aria-label="Ask your energy copilot"
-                    placeholder="Ask anything about your energy…"
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    maxLength={2000}
-                  />
-                  <button
-                    aria-label="Send message"
-                    disabled={!input.trim() || thinking}
-                  >
-                    <ArrowUpRight size={21} />
-                  </button>
-                </form>
-                <div className="chat-disclaimer">
-                  SIMULATED TELEMETRY{" "}
-                  <span>POWERED BY CURIOSITY. GUIDED BY DATA.</span>
-                </div>
-              </div>
-            </div>
+              }
+            />
           </section>
           <section className="impact-strip section-wrap reveal">
             <div>

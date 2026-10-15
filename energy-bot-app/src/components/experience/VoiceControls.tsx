@@ -16,23 +16,29 @@ export function VoiceControls({
   onTranscript,
   reply,
   onNotice,
+  languageCode = "en-IN",
 }: {
   onTranscript: (text: string) => void;
   reply: string;
   onNotice: (message: string) => void;
+  languageCode?: string;
 }) {
   const [listening, setListening] = useState(false);
   const [speaking, setSpeaking] = useState(false);
   const recognition = useRef<Recognition | null>(null);
   useEffect(() => {
-    if (!speaking || !("speechSynthesis" in window)) return;
+    if (!speaking || !reply || !("speechSynthesis" in window)) return;
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(reply);
-    utterance.lang = "en-IN";
+    utterance.lang = languageCode;
+    const voice = window.speechSynthesis
+      .getVoices()
+      .find((v) => v.lang.split("-")[0] === languageCode.split("-")[0]);
+    if (voice) utterance.voice = voice;
     utterance.rate = 1;
     window.speechSynthesis.speak(utterance);
     return () => window.speechSynthesis.cancel();
-  }, [reply, speaking]);
+  }, [reply, speaking, languageCode]);
   useEffect(
     () => () => {
       if (recognition.current) {
@@ -64,7 +70,7 @@ export function VoiceControls({
     }
     const instance = new SpeechRecognition();
     recognition.current = instance;
-    instance.lang = "en-IN";
+    instance.lang = languageCode;
     instance.continuous = false;
     instance.interimResults = false;
     instance.onresult = (e) => {

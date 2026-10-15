@@ -1,4 +1,4 @@
-# ⚡ Electra AI: Autonomous Energy Copilot & Microgrid OS
+# ⚡ Electra AI: Electrical Intelligence & Energy Audit Assistant
 
 > An intelligent, real-time microgrid management dashboard and autonomous voice/chat AI copilot that optimizes residential and commercial energy flows (Bifacial Solar generation, Battery Energy Storage Systems (BESS), smart sub-circuit appliance loads, and dynamic Time-of-Use / spot electricity tariffs).
 
@@ -68,3 +68,19 @@ npm run dev
 ```
 
 Open [http://localhost:5173](http://localhost:5173) in your browser.
+
+
+## Report Q&A and multilingual electrical assistance
+
+The chat now has **Audit report**, **Electrical Q&A**, and **Microgrid demo** modes. A separate Node API in `server/` reads the configured private Supabase audit PDF, retrieves page text, and uses Groq to answer in the selected language. Source quotations are checked against retrieved pages and shown as expandable citations. The dashboard remains a simulation.
+
+See [Connect the report backend](docs/REPORT_CHAT.md) for exact Render settings, server-only secrets, access boundaries, tests, and extraction limitations. The static frontend alone cannot answer report questions; set `VITE_API_BASE_URL` after deploying the backend. Do not put Supabase server keys or Groq keys in the frontend.
+
+```bash
+npm --prefix server ci
+npm --prefix server test
+npm --prefix energy-bot-app ci
+npm --prefix energy-bot-app run build
+```
+
+PDF OCR, arbitrary report uploads, per-user authentication, persistent chat history, and hardware control are not implemented. Language-model and live Supabase checks require deployment credentials; local tests use controlled provider responses and the uploaded PDF.
