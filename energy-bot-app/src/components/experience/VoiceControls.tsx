@@ -1,3 +1,8 @@
+/**
+ * VoiceControls.tsx
+ * Kept for backward-compatibility (App.tsx demo panel).
+ * The primary chat voice controls are now inline in ConnectedCopilot.
+ */
 import { useEffect, useRef, useState } from "react";
 import { Mic, MicOff, Volume2, VolumeX } from "lucide-react";
 
@@ -12,6 +17,7 @@ type Recognition = {
   stop: () => void;
   abort: () => void;
 };
+
 export function VoiceControls({
   onTranscript,
   reply,
@@ -24,8 +30,9 @@ export function VoiceControls({
   languageCode?: string;
 }) {
   const [listening, setListening] = useState(false);
-  const [speaking, setSpeaking] = useState(false);
+  const [speaking,  setSpeaking]  = useState(false);
   const recognition = useRef<Recognition | null>(null);
+
   useEffect(() => {
     if (!speaking || !reply || !("speechSynthesis" in window)) return;
     window.speechSynthesis.cancel();
@@ -33,88 +40,55 @@ export function VoiceControls({
     utterance.lang = languageCode;
     const voice = window.speechSynthesis
       .getVoices()
-      .find((v) => v.lang.split("-")[0] === languageCode.split("-")[0]);
+      .find(v => v.lang.split("-")[0] === languageCode.split("-")[0]);
     if (voice) utterance.voice = voice;
     utterance.rate = 1;
     window.speechSynthesis.speak(utterance);
     return () => window.speechSynthesis.cancel();
   }, [reply, speaking, languageCode]);
+
   useEffect(
     () => () => {
-      if (recognition.current) {
-        recognition.current.onresult = null;
-        recognition.current.onend = null;
-        recognition.current.onerror = null;
-        recognition.current.abort();
-      }
+      recognition.current?.abort();
     },
     [],
   );
+
   const listen = () => {
-    if (listening) {
-      recognition.current?.stop();
-      setListening(false);
-      return;
-    }
+    if (listening) { recognition.current?.stop(); setListening(false); return; }
     const api = window as unknown as {
       SpeechRecognition?: new () => Recognition;
       webkitSpeechRecognition?: new () => Recognition;
     };
-    const SpeechRecognition =
-      api.SpeechRecognition || api.webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      onNotice(
-        "Voice input is unavailable in this browser. You can type your question below.",
-      );
-      return;
-    }
-    const instance = new SpeechRecognition();
-    recognition.current = instance;
-    instance.lang = languageCode;
-    instance.continuous = false;
-    instance.interimResults = false;
-    instance.onresult = (e) => {
-      onTranscript(e.results[0][0].transcript);
-      setListening(false);
-    };
-    instance.onerror = () => {
-      setListening(false);
-      onNotice(
-        "Voice input could not start. Check microphone access, or type your question.",
-      );
-    };
-    instance.onend = () => setListening(false);
-    try {
-      instance.start();
-      setListening(true);
-    } catch {
-      setListening(false);
-      onNotice("Microphone unavailable. Please type your question.");
-    }
+    const SR = api.SpeechRecognition || api.webkitSpeechRecognition;
+    if (!SR) { onNotice("Voice input is unavailable. Please type your question."); return; }
+    const inst = new SR();
+    recognition.current = inst;
+    inst.lang = languageCode;
+    inst.continuous = false;
+    inst.interimResults = false;
+    inst.onresult = e => { onTranscript(e.results[0][0].transcript); setListening(false); };
+    inst.onerror  = () => { setListening(false); onNotice("Microphone unavailable. Please type your question."); };
+    inst.onend    = () => setListening(false);
+    try { inst.start(); setListening(true); }
+    catch { setListening(false); onNotice("Microphone unavailable."); }
   };
+
   return (
     <div className="voice-controls">
       <button
-        className={`icon-button ${listening ? "mic-active" : ""}`}
+        className={`icon-button${listening ? " mic-active" : ""}`}
         onClick={listen}
         aria-label={listening ? "Stop listening" : "Dictate a question"}
-        aria-pressed={listening}
       >
-        {listening ? <MicOff size={14} /> : <Mic size={14} />}
+        {listening ? <MicOff size={16} /> : <Mic size={16} />}
       </button>
       <button
         className="icon-button"
-        aria-label={speaking ? "Mute spoken replies" : "Read replies aloud"}
-        aria-pressed={speaking}
-        onClick={() => {
-          if (!("speechSynthesis" in window)) {
-            onNotice("Spoken replies are unavailable in this browser.");
-            return;
-          }
-          setSpeaking((s) => !s);
-        }}
+        onClick={() => setSpeaking(s => !s)}
+        aria-label={speaking ? "Mute voice replies" : "Enable voice replies"}
       >
-        {speaking ? <Volume2 size={14} /> : <VolumeX size={14} />}
+        {speaking ? <Volume2 size={16} /> : <VolumeX size={16} />}
       </button>
     </div>
   );
