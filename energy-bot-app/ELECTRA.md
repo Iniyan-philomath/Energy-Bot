@@ -4,7 +4,7 @@ The main application is `energy-bot-app`. Run `npm ci`, then `npm run dev` here.
 
 ## Frontend architecture
 
-- `src/components/electra/scenario.ts` retains the existing simulated device state and controls. Grid exchange is derived from generation, device demand, and battery power. No backend, authentication, report ingestion, or external AI API exists in this checkout.
+- `src/components/electra/scenario.ts` retains the existing simulated device state and controls. Grid exchange is derived from generation, device demand, and battery power. The deployment branch also provides the existing audit backend in `server/`. `AuditWorkspace.tsx` uses its unchanged `chatApi.ts` contract for report and electrical Q&A, alongside the local demo.
 - `advice.ts` preserves the local intent routing and supported action IDs. Unverified savings, forecasts, and islanding claims have been replaced with explicit data limitations. No fake response streaming is used.
 - `PowerAssembly.tsx` is a lazy-loaded procedural R3F scene: ceramic insulator, copper winding, metal support cage, engraved base, and busbars. Pointer, scroll, processing, and completion movements are interface cues, not measurements.
 - `experience.ts` owns a GSAP intro state machine: anticipation → strike → energizing → reveal → ready. Playback lasts 3.8 seconds once the scene initializes. Slow initialization has a five-second escape; skip, hidden-tab, reduced-motion, and WebGL-error paths reveal the dashboard. Completion persists per tab session. Settings allow replay.
@@ -24,4 +24,4 @@ Production build and lint pass. Lint retains 11 pre-existing warnings in the unu
 
 Chromium/Playwright checks exercised intro completion, actual WebGL canvas, tariff advice and action application, theme persistence, replay/skip, mobile overflow, reduced motion, and forced WebGL failure with working chat. Desktop (1440 px) and mobile (390 px) screenshots were captured in both themes under `/workspace/artifacts`. The smoke script is `/workspace/artifacts/check-electra.cjs` in this workspace.
 
-Actual microphone recognition and audible output need a suitable browser/device and permissions; they are not guaranteed by headless checks. There is no production energy-data integration to validate.
+Actual microphone recognition and audible output need a suitable browser/device and permissions; they are not guaranteed by headless checks. Live audit retrieval requires the existing Render/Supabase/Groq configuration. Local mocked browser checks do not establish live service readiness.

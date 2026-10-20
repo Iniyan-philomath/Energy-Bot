@@ -1,29 +1,64 @@
-# Existing manually-created services must use these same settings in Render.
-# Adding a Blueprint file alone does not reconfigure an existing service.
+# Deploy this repository as a Render Blueprint.
 services:
   - type: web
-    name: Energy-Bot
-    runtime: static
-    repo: https://github.com/Iniyan-philomath/Energy-Bot
-    branch: main
-    rootDir: energy-bot-app
-    buildCommand: npm ci --include=dev && npm run build
-    staticPublishPath: ./dist
+    name: electra-ai
+    branch: deploy/volt-iq-render
     autoDeploy: true
+    runtime: static
+    rootDir: energy-bot-app
+    buildCommand: npm ci --include=dev --no-audit --no-fund && npm run build
+    staticPublishPath: ./dist
     envVars:
       - key: NODE_VERSION
         value: 24.19.0
-    headers:
-      - path: /
-        name: Cache-Control
-        value: no-cache
-      - path: /index.html
-        name: Cache-Control
-        value: no-cache
-      - path: /deployment.json
-        name: Cache-Control
-        value: no-store
+      - key: VITE_API_BASE_URL
+        sync: false
     routes:
       - type: rewrite
         source: /*
         destination: /index.html
+    headers:
+      - path: /deployment.json
+        name: Cache-Control
+        value: no-store
+      - path: /
+        name: Cache-Control
+        value: no-cache
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: Referrer-Policy
+        value: strict-origin-when-cross-origin
+      - path: /assets/*
+        name: Cache-Control
+        value: public, max-age=31536000, immutable
+      - path: /index.html
+        name: Cache-Control
+        value: no-cache
+  - type: web
+    name: electra-ai-api
+    branch: deploy/volt-iq-render
+    runtime: node
+    plan: free
+    rootDir: server
+    buildCommand: npm ci --no-audit --no-fund
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: 24.19.0
+      - key: SUPABASE_URL
+        value: https://akgdqmijbygpunwtgoss.supabase.co
+      - key: SUPABASE_SECRET_KEY
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GROQ_MODEL
+        value: llama-3.3-70b-versatile
+      - key: AUDIT_BUCKET
+        value: energy-audits
+      - key: AUDIT_OBJECT_PATH
+        value: sce-energy-audit-2025-2026.pdf
+      - key: ALLOWED_ORIGINS
+        value: https://energybot.onrender.com,https://energy-bot-5yke.onrender.com

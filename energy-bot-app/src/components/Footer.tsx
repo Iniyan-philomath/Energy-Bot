@@ -15,7 +15,7 @@ export const Footer: React.FC = () => {
                 </div>
               </div>
               <span className="font-bold text-lg tracking-tight text-white">
-                VOLT-IQ <span className="text-neutral-500 font-mono text-xs font-normal">PRO</span>
+                Electra AI <span className="text-neutral-500 font-mono text-xs font-normal">PRO</span>
               </span>
             </div>
             <p className="text-sm text-neutral-400 max-w-sm leading-relaxed font-normal">
@@ -64,7 +64,7 @@ export const Footer: React.FC = () => {
         </div>
 
         <div className="mt-12 pt-8 border-t border-white/[0.06] flex flex-col sm:flex-row items-center justify-between text-xs text-neutral-500 font-mono gap-4">
-          <p>© 2026 VOLT-IQ Energy Intelligence. Designed with Apple Pro precision.</p>
+          <p>© 2026 Electra AI Energy Intelligence. Designed with Apple Pro precision.</p>
           <div className="flex items-center gap-4">
             <span className="hover:text-white transition-colors cursor-pointer flex items-center gap-1.5">
               <Code2 className="w-3.5 h-3.5" /> Microgrid API

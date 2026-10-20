@@ -39,7 +39,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
           <div className="flex flex-col">
             <span className="font-semibold text-sm tracking-tight text-white flex items-center gap-1.5">
-              VOLT-IQ
+              Electra AI
               <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">PRO</span>
             </span>
             <span className="text-[10px] text-neutral-400 tracking-wider uppercase font-medium">Autonomous Grid</span>
