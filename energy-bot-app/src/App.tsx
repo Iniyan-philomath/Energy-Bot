@@ -1,241 +1,56 @@
-import { useState, useEffect, useRef } from 'react';
-import confetti from 'canvas-confetti';
-import Lenis from 'lenis';
-import { Navbar } from './components/Navbar';
-import { Hero } from './components/Hero';
-import { EnergyBotChat } from './components/EnergyBotChat';
-import { LiveTelemetryGrid } from './components/LiveTelemetryGrid';
-import { SmartApplianceMatrix } from './components/SmartApplianceMatrix';
-import { CarbonSavingsTracker } from './components/CarbonSavingsTracker';
-import { Footer } from './components/Footer';
-import type { EnergyTelemetry, SmartAppliance } from './types/energy';
-
-export default function App() {
-  const [telemetry, setTelemetry] = useState<EnergyTelemetry>({
-    solarGenerationKw: 4.8,
-    homeConsumptionKw: 2.1,
-    batterySocPct: 88,
-    batteryPowerKw: 1.9, // positive = charging
-    gridExportKw: 0.8, // positive = net export
-    currentTariffPerKwh: 0.12,
-    peakTariffPerKwh: 0.36,
-    offPeakTariffPerKwh: 0.08,
-    dailyTotalKwh: 18.4,
-    carbonOffsetKg: 14.2,
-    cleanEnergyPct: 84,
-    gridFrequencyHz: 50.002,
-    voltageV: 230.2
-  });
-
-  const [appliances, setAppliances] = useState<SmartAppliance[]>([
-    {
-      id: 'app-ev',
-      name: 'Tesla Wallbox EV Charger',
-      category: 'ev',
-      powerWatt: 3200,
-      defaultWatt: 7200,
-      isActive: false,
-      isAiOptimized: true,
-      scheduleTime: 'Night 02:00 - 06:00 ($0.08/kWh)',
-      icon: 'car'
-    },
-    {
-      id: 'app-hvac',
-      name: 'Smart Inverter Heat Pump',
-      category: 'hvac',
-      powerWatt: 1400,
-      defaultWatt: 2400,
-      isActive: true,
-      isAiOptimized: true,
-      scheduleTime: 'Eco climate mode active',
-      icon: 'flame'
-    },
-    {
-      id: 'app-water',
-      name: 'Hybrid Heat Pump Water Heater',
-      category: 'storage',
-      powerWatt: 850,
-      defaultWatt: 1800,
-      isActive: true,
-      isAiOptimized: false,
-      scheduleTime: 'Peak Solar Window 12:00',
-      icon: 'droplets'
-    },
-    {
-      id: 'app-server',
-      name: 'Home AI & Network Server',
-      category: 'computing',
-      powerWatt: 450,
-      defaultWatt: 650,
-      isActive: true,
-      isAiOptimized: false,
-      icon: 'server'
-    },
-    {
-      id: 'app-kitchen',
-      name: 'Induction Cooking Range',
-      category: 'kitchen',
-      powerWatt: 1200,
-      defaultWatt: 2200,
-      isActive: false,
-      isAiOptimized: false,
-      icon: 'cooking-pot'
-    }
-  ]);
-
-  const chatSectionRef = useRef<HTMLDivElement>(null);
-
-  // Initialize Lenis smooth scroll
-  useEffect(() => {
-    const lenis = new Lenis({
-      duration: 1.2,
-      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-      smoothWheel: true,
-    });
-
-    let animationId: number;
-    function raf(time: number) {
-      lenis.raf(time);
-      animationId = requestAnimationFrame(raf);
-    }
-
-    animationId = requestAnimationFrame(raf);
-
-    return () => {
-      cancelAnimationFrame(animationId);
-      lenis.destroy();
-    };
-  }, []);
-
-  // Subtle natural microgrid telemetry variance
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setTelemetry(prev => {
-        const solarFluct = (Math.random() - 0.5) * 0.12;
-        const newSolar = Math.max(3.8, Math.min(5.6, prev.solarGenerationKw + solarFluct));
-        
-        const activeAppWatts = appliances
-          .filter(a => a.isActive)
-          .reduce((sum, a) => sum + a.powerWatt, 0);
-        const baseHomeKw = 0.6;
-        const newHomeKw = Math.round((baseHomeKw + activeAppWatts / 1000) * 10) / 10;
-
-        const newNetExport = Math.round((newSolar - newHomeKw - 1.2) * 10) / 10;
-        const newFreq = 50.0 + (Math.random() - 0.5) * 0.02;
-        const newVolt = 230.0 + (Math.random() - 0.5) * 0.4;
-
-        return {
-          ...prev,
-          solarGenerationKw: newSolar,
-          homeConsumptionKw: newHomeKw,
-          gridExportKw: newNetExport,
-          gridFrequencyHz: newFreq,
-          voltageV: newVolt,
-          carbonOffsetKg: prev.carbonOffsetKg + 0.01
-        };
-      });
-    }, 3500);
-
-    return () => clearInterval(interval);
-  }, [appliances]);
-
-  const handleToggleAppliance = (id: string) => {
-    setAppliances(prev => prev.map(a => {
-      if (a.id === id) {
-        return { ...a, isActive: !a.isActive };
-      }
-      return a;
-    }));
-  };
-
-  const handleUpdateAppliancePower = (id: string, watts: number) => {
-    setAppliances(prev => prev.map(a => {
-      if (a.id === id) {
-        return { ...a, powerWatt: watts };
-      }
-      return a;
-    }));
-  };
-
-  const handleOptimizeAll = () => {
-    confetti({
-      particleCount: 60,
-      spread: 70,
-      origin: { y: 0.7 },
-      colors: ['#34d399', '#fbbf24', '#ffffff']
-    });
-
-    setAppliances(prev => prev.map(a => {
-      if (a.id === 'app-ev') {
-        return { ...a, isActive: false, isAiOptimized: true, scheduleTime: 'Night 02:00 - 06:00 ($0.08/kWh)' };
-      }
-      if (a.id === 'app-hvac') {
-        return { ...a, powerWatt: 1100, isAiOptimized: true };
-      }
-      if (a.id === 'app-water') {
-        return { ...a, powerWatt: 600, isAiOptimized: true };
-      }
-      return a;
-    }));
-  };
-
-  const handleApplyOptimization = (actionId: string) => {
-    if (actionId === 'act-peak-shave') {
-      setTelemetry(prev => ({
-        ...prev,
-        batteryPowerKw: -3.2,
-        gridExportKw: 2.1,
-        cleanEnergyPct: 96
-      }));
-    } else if (actionId === 'act-delay-ev') {
-      setAppliances(prev => prev.map(a => a.id === 'app-ev' ? { ...a, isActive: false, isAiOptimized: true } : a));
-    } else if (actionId === 'act-divert-solar') {
-      setAppliances(prev => prev.map(a => a.id === 'app-water' ? { ...a, isActive: true, powerWatt: 1400, isAiOptimized: true } : a));
-    }
-  };
-
-  const scrollToChat = () => {
-    chatSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  return (
-    <div className="min-h-screen apple-bg-mesh text-neutral-100 flex flex-col selection:bg-emerald-500/30 selection:text-emerald-200 antialiased">
-      <Navbar 
-        telemetry={telemetry}
-        onOpenVoiceCopilot={scrollToChat}
-        onQuickSimulate={handleOptimizeAll}
-      />
-
-      <main className="flex-1">
-        <Hero 
-          telemetry={telemetry}
-          onExploreBot={scrollToChat}
-          onOptimizeGrid={handleOptimizeAll}
-        />
-
-        <EnergyBotChat 
-          telemetry={telemetry}
-          onApplyOptimization={handleApplyOptimization}
-          chatSectionRef={chatSectionRef}
-        />
-
-        <LiveTelemetryGrid 
-          telemetry={telemetry}
-        />
-
-        <SmartApplianceMatrix 
-          appliances={appliances}
-          onToggleAppliance={handleToggleAppliance}
-          onUpdateAppliancePower={handleUpdateAppliancePower}
-          onOptimizeAll={handleOptimizeAll}
-        />
-
-        <CarbonSavingsTracker 
-          telemetry={telemetry}
-        />
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { motion, MotionConfig } from 'motion/react';
+import gsap from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { ArrowDown, ArrowUpRight, AudioLines, Battery, ChevronDown, CircleHelp, Gauge, LayoutDashboard, MessageSquare, Moon, Play, Settings2, Sun, Volume2, VolumeX, Zap } from 'lucide-react';
+import SceneStage from './components/electra/SceneStage';
+import ChatWorkspace from './components/electra/ChatWorkspace';
+import { useIntro, useReducedMotion, useThunder, readPreference, savePreference } from './components/electra/experience';
+import { useScenario } from './components/electra/scenario';
+gsap.registerPlugin(ScrollTrigger);
+export default function App(){
+  const {telemetry:t,appliances,toggle,power,optimize,apply}=useScenario();
+  const reduced=useReducedMotion();const [theme,setTheme]=useState(()=>document.documentElement.dataset.theme||'dark');
+  const [muted,setMuted]=useState(()=>readPreference('electra-muted')==='true');const sound=useThunder(muted);
+  const [sceneReady,setSceneReady]=useState(false);const markSceneReady=useCallback(()=>setSceneReady(true),[]);
+  const intro=useIntro(reduced,sceneReady,sound.strike,sound.stop);const [thinking,setThinking]=useState(false);const [answer,setAnswer]=useState(0);const [settings,setSettings]=useState(false);const [activeNav,setActiveNav]=useState('overview');const [optimized,setOptimized]=useState(false);
+  const page=useRef<HTMLDivElement>(null);const progress=useRef(0);const settingsRef=useRef<HTMLDivElement>(null);const settingsButton=useRef<HTMLButtonElement>(null);
+  useEffect(()=>{document.documentElement.dataset.theme=theme;},[theme]);
+  useEffect(()=>{const media=matchMedia('(prefers-color-scheme:dark)');const update=()=>{if(!readPreference('electra-theme'))setTheme(media.matches?'dark':'light');};media.addEventListener('change',update);return()=>media.removeEventListener('change',update);},[]);
+  useEffect(()=>{savePreference('electra-muted',String(muted));},[muted]);
+  useEffect(()=>{if(!settings)return;const close=(e:KeyboardEvent)=>{if(e.key==='Escape'){setSettings(false);settingsButton.current?.focus();}};const outside=(e:PointerEvent)=>{if(!settingsRef.current?.contains(e.target as Node)&&!settingsButton.current?.contains(e.target as Node))setSettings(false);};document.addEventListener('keydown',close);document.addEventListener('pointerdown',outside);return()=>{document.removeEventListener('keydown',close);document.removeEventListener('pointerdown',outside);};},[settings]);
+  useEffect(()=>{
+    if(reduced||intro.phase!=='ready')return;
+    const context=gsap.context(()=>{
+      gsap.to('.overview-copy',{y:-24,opacity:.5,ease:'none',scrollTrigger:{trigger:'.overview',start:'top top',end:'bottom top',scrub:true,onUpdate:self=>{progress.current=self.progress;}}});
+      gsap.from('.analysis-reveal',{y:28,opacity:0,duration:.6,stagger:.12,scrollTrigger:{trigger:'.analysis',start:'top 90%',once:true}});
+    },page);return()=>{context.revert();progress.current=0;};
+  },[reduced,intro.phase]);
+  useEffect(()=>{const observer=new IntersectionObserver(entries=>{for(const entry of entries)if(entry.isIntersecting)setActiveNav(entry.target.id);},{rootMargin:'-10% 0px -55% 0px'});['overview','conversation','devices'].forEach(id=>{const el=document.getElementById(id);if(el)observer.observe(el);});return()=>observer.disconnect();},[]);
+  const changeTheme=()=>{const next=theme==='dark'?'light':'dark';savePreference('electra-theme',next);setTheme(next);};
+  const replay=()=>{setSettings(false);window.scrollTo({top:0,behavior:'instant'});if(!muted)sound.prepare();intro.replay();};
+  const introRunning=intro.phase!=='ready';
+  return <MotionConfig reducedMotion="user"><div ref={page} className={`app-shell ${introRunning?'intro-running':''}`} data-intro-phase={intro.phase}>
+    <a href="#conversation" className="skip-link">Skip to conversation</a>
+    <aside className="rail" inert={introRunning}><a className="brand-symbol" href="#overview" aria-label="Electra overview">ϟ</a><div className="rail-links">{[{id:'overview',icon:LayoutDashboard,label:'Overview'},{id:'conversation',icon:MessageSquare,label:'Conversation'},{id:'devices',icon:Settings2,label:'Device controls'}].map(n=><a href={`#${n.id}`} key={n.id} aria-label={n.label} title={n.label} aria-current={activeNav===n.id?'location':undefined} className={activeNav===n.id?'active':''}>{activeNav===n.id&&<motion.span layoutId="nav-marker" className="nav-marker"/>}<n.icon size={19}/></a>)}</div><a className="rail-help" href="#context" aria-label="About this scenario"><CircleHelp size={19}/></a><span className="rail-edition">E / 01</span></aside>
+    <div className="main-shell">
+      <header className="topbar" inert={introRunning}><a href="#overview" className="wordmark">ELECTRA<span>ENERGY INTELLIGENCE</span></a><div className="context-title"><span className="status-square"/>Residential microgrid<span className="demo-tag">SIMULATION</span></div><div className="top-actions"><button className="icon-button" aria-label={`Switch to ${theme==='dark'?'light':'dark'} theme`} onClick={changeTheme} title="Switch theme">{theme==='dark'?<Sun size={18}/>:<Moon size={18}/>}</button><button className="icon-button" aria-label={muted?'Unmute sound':'Mute sound'} aria-pressed={!muted} onClick={()=>{setMuted(!muted);}} title="Intro sound">{muted?<VolumeX size={18}/>:<Volume2 size={18}/>}</button><button ref={settingsButton} className="icon-button" aria-label="Experience settings" aria-expanded={settings} aria-controls="experience-settings" onClick={()=>setSettings(!settings)}><Settings2 size={18}/></button></div>
+      {settings&&<motion.div id="experience-settings" className="settings-panel" ref={settingsRef} initial={{opacity:0,y:-4}} animate={{opacity:1,y:0}}><span className="eyebrow">EXPERIENCE</span><button onClick={replay} disabled={reduced}><Play size={14}/>Replay opening{sound.blocked&&!muted?' with sound':''}</button><p>{reduced?'Reduced motion is on. Cinematic playback is disabled.':'A single strike, then the workspace. Sound depends on browser permission.'}</p></motion.div>}</header>
+      <main>
+        <section className="overview" id="overview">
+          <div className="overview-copy" inert={introRunning}><div className="eyebrow"><span className="tiny-line"/> THE POWER OBSERVATORY <span>01 / 03</span></div><h1>Every watt.<br/><em>Understood.</em></h1><p>A quieter kind of intelligence.<br/>Explore the flow. Find the opportunity.<br/>Make your next energy decision clearer.</p><div className="overview-actions"><a href="#conversation" className="primary-button magnetic" onPointerMove={e=>{if(reduced||!matchMedia('(pointer:fine)').matches)return;const r=e.currentTarget.getBoundingClientRect();e.currentTarget.style.transform=`translate(${(e.clientX-r.left-r.width/2)*.06}px, ${(e.clientY-r.top-r.height/2)*.06}px)`;}} onPointerLeave={e=>{e.currentTarget.style.transform='';}}>Talk to Electra <ArrowUpRight size={17}/></a><a href="#devices" className="text-link">Explore controls <ArrowDown size={14}/></a></div><div className="scenario-caption"><span>LOCAL MICROGRID STUDY</span><p>Simulated readings. Real possibilities to explore.<br/>No live meter or uploaded audit connected.</p></div></div>
+          <SceneStage theme={theme} phase={intro.phase} reduced={reduced} thinking={thinking} answer={answer} progress={progress} onFail={intro.finish} onReady={markSceneReady}/>
+        </section>
+        <div className="dashboard-content" inert={introRunning}>
+          <section className="metrics-strip" aria-label="Simulated energy readings">{[{label:'Solar generation',value:t.solarGenerationKw.toFixed(2),unit:'kW',note:'Modeled supply',icon:Sun},{label:'Home demand',value:t.homeConsumptionKw.toFixed(2),unit:'kW',note:'Base load + active devices',icon:Gauge},{label:'Battery reserve',value:String(t.batterySocPct),unit:'%',note:t.batteryPowerKw<0?'Discharging scenario':'Charging scenario',icon:Battery},{label:'Current tariff',value:t.currentTariffPerKwh.toFixed(2),unit:'$/kWh',note:'Demo pricing schedule',icon:Zap}].map(m=><div className="metric" key={m.label}><div><span>{m.label}</span><m.icon size={16}/></div><strong key={m.value}>{m.value}<small>{m.unit}</small></strong><p>{m.note}</p></div>)}</section>
+          <div className="workspace-grid"><ChatWorkspace telemetry={t} onApply={apply} onThinking={setThinking} onAnswer={()=>setAnswer(v=>v+1)} reduced={reduced} muted={muted}/>
+          <aside className="analysis" id="context"><div className="section-heading"><div><span className="eyebrow">THE CURRENT PICTURE</span><h2>In perspective.</h2></div></div><div className="analysis-reveal balance-panel"><div className="panel-caption">01 — ENERGY BALANCE <ArrowUpRight size={15}/></div><h3>{t.gridExportKw>=0?'Power to spare.':'Drawing from the grid.'}</h3><p>Current simulated net {t.gridExportKw>=0?'export':'import'}</p><div className="balance-number">{Math.abs(t.gridExportKw).toFixed(2)}<span>kW</span></div><div className="energy-bars" aria-label="Solar generation and home demand comparison"><div><span>Solar</span><div><i style={{width:`${Math.min(t.solarGenerationKw/8*100,100)}%`}}/></div><b>{t.solarGenerationKw.toFixed(1)}</b></div><div><span>Home</span><div><i style={{width:`${Math.min(t.homeConsumptionKw/8*100,100)}%`}}/></div><b>{t.homeConsumptionKw.toFixed(1)}</b></div></div><small>Battery {t.batteryPowerKw>=0?'charge':'discharge'}: {Math.abs(t.batteryPowerKw).toFixed(1)} kW</small></div>
+          <div className="analysis-reveal tariff-panel"><div className="panel-caption">02 — RATE WINDOWS</div><div className="tariff-chart" aria-label={`Scenario off-peak ${t.offPeakTariffPerKwh}, current ${t.currentTariffPerKwh}, peak ${t.peakTariffPerKwh} dollars per kilowatt hour`}>{[['Off-peak',t.offPeakTariffPerKwh],['Current',t.currentTariffPerKwh],['Peak',t.peakTariffPerKwh]].map(([label,value])=><div key={label}><span>${Number(value).toFixed(2)}</span><i style={{height:`${Number(value)/.36*72}px`}}/><small>{label}</small></div>)}</div><p>Illustrative tariff bands · $/kWh</p></div><details className="analysis-reveal context-disclosure"><summary>About this data <ChevronDown size={15}/></summary><p>This is the repository’s local residential energy simulation. Device settings affect modeled demand. There is no connected meter, audit report, or external AI service. The 3D assembly expresses interface activity, not measured electricity.</p></details></aside></div>
+          <section className="devices" id="devices"><div className="section-heading"><div><span className="eyebrow">03 / LOAD ORCHESTRATION</span><h2>A little control.<br/><em>A different balance.</em></h2></div><button className="secondary-button" onClick={()=>{optimize();setOptimized(true);}}><AudioLines size={16}/>{optimized?'Scenario optimized':'Optimize demo loads'}<ArrowUpRight size={15}/></button></div><div className="device-table"><div className="device-table-head"><span>CONNECTED IN SCENARIO</span><span>POWER SETPOINT</span><span>STATE</span></div>{appliances.map((a,i)=><div className="device-row" key={a.id}><div className="device-name"><span className="device-index">0{i+1}</span><div><h3>{a.name}</h3><p>{a.scheduleTime||'Manual scenario control'}</p></div></div><label className="device-power"><span>{a.powerWatt.toLocaleString()} <small>W / {a.defaultWatt.toLocaleString()} W max</small></span><input aria-label={`${a.name} power`} type="range" min={50} max={a.defaultWatt} step={50} value={a.powerWatt} disabled={!a.isActive} onChange={e=>power(a.id,Number(e.target.value))}/></label><button role="switch" aria-checked={a.isActive} aria-label={`${a.name} active`} className="device-switch" onClick={()=>toggle(a.id)}><span/><small>{a.isActive?'On':'Off'}</small></button></div>)}</div><p className="device-note" role="status">{optimized?'Demo load strategy applied. ':''}Controls affect this simulation only. No commands are sent to physical equipment.</p></section>
+          <footer><span className="wordmark">ELECTRA</span><span>UNDERSTAND YOUR ENERGY. SHAPE WHAT’S NEXT.</span><span>LOCAL STUDY / 01</span></footer>
+        </div>
       </main>
-
-      <Footer />
     </div>
-  );
+    {introRunning&&<div className={`intro-overlay phase-${intro.phase}`} role="dialog" aria-label="Electra cinematic opening" aria-modal="true"><span className="intro-edition">E / 01 — THE POWER OBSERVATORY</span><button className="skip-intro" onClick={intro.finish}>Skip intro <ArrowUpRight size={14}/></button><div className="intro-title"><p>{intro.phase==='anticipation'?'A MOMENT OF POTENTIAL':'ENERGY INTELLIGENCE'}</p><h2>ELECTRA</h2><span>{intro.phase==='strike'?'Contact.':intro.phase==='energizing'?'A clearer connection.':'The power of understanding.'}</span></div><div className="intro-progress"><i/></div></div>}
+  </div></MotionConfig>;
 }
