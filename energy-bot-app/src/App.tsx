@@ -37,7 +37,16 @@ import {
 } from "lucide-react";
 import { ConnectedCopilot } from "./components/experience/ConnectedCopilot";
 import { VoiceControls } from "./components/experience/VoiceControls";
-import { playElectricClickSound, playHudChirpSound } from "./lib/soundFx";
+import {
+  ElectricCursor,
+  LightningStormCanvas,
+  PowerIntro,
+} from "./components/experience/ElectricExperience";
+import {
+  playElectricClickSound,
+  playHudChirpSound,
+  playLightningThunderSound,
+} from "./lib/soundFx";
 import "./App.css";
 
 /* ─── Constants ─────────────────────────────────────────────────────────── */
@@ -124,6 +133,8 @@ export default function App() {
 
   const [toast, setToast]   = useState("");
   const [sound, setSound]   = useState(false);
+  const [showIntro, setShowIntro] = useState(true);
+  const [showLightning, setShowLightning] = useState(false);
 
   const demoEnd     = useRef<HTMLDivElement>(null);
   const demoInput$  = useRef<HTMLTextAreaElement>(null);
@@ -384,6 +395,19 @@ export default function App() {
     <div className="electra-app">
       <a href="#main-content" className="skip-link">Skip to main content</a>
 
+      {/* Electric Spark Ripple on click */}
+      <ElectricCursor />
+
+      {/* Fast 850ms loading thunder strike entrance */}
+      <AnimatePresence>
+        {showIntro && (
+          <PowerIntro onFinish={() => setShowIntro(false)} />
+        )}
+      </AnimatePresence>
+
+      {/* Interactive on-demand lightning storm */}
+      {showLightning && <LightningStormCanvas active={true} />}
+
       {/* Mobile overlay */}
       {mobileOpen && (
         <div
@@ -483,6 +507,20 @@ export default function App() {
           </div>
 
           <div className="header-actions">
+            {/* Lightning Strike Trigger */}
+            <button
+              className="icon-btn"
+              onClick={() => {
+                setShowLightning(true);
+                try { playLightningThunderSound(); } catch { /* ok */ }
+                setTimeout(() => setShowLightning(false), 900);
+              }}
+              aria-label="Ignite electric lightning"
+              title="⚡ Strike Electric Lightning"
+            >
+              <Zap size={16} color="var(--accent-primary)" />
+            </button>
+
             {/* Sound */}
             <button
               className={`icon-btn${sound ? " active" : ""}`}
