@@ -45,11 +45,10 @@ export const languageOptions = [
   ["sat-IN", "Santali"],
   ["brx-IN", "Bodo"],
 ] as const;
-const base = String(import.meta.env.VITE_API_BASE_URL || "").replace(
-  /\/+$/,
-  "",
-);
-export const apiConfigured = !!base;
+const base = String(
+  import.meta.env.VITE_API_BASE_URL || "https://electra-ai-api.onrender.com",
+).replace(/\/+$/, "");
+export const apiConfigured = true;
 const errors: Record<string, string> = {
   REPORT_NOT_CONFIGURED:
     "The audit library is not connected yet. Please try again after setup.",

@@ -123,7 +123,7 @@ For electrical mode, citations must be []. For report mode, supported=true requi
           typeof c.quote !== "string" ||
           c.quote.trim().length < 12 ||
           c.quote.length > 1200 ||
-          !normalize(source.text).includes(normalize(c.quote))
+          !normalize(source.text).toLowerCase().includes(normalize(c.quote).toLowerCase())
         )
           throw new ServiceError("CITATION_CHECK_FAILED", 502);
         citations.push({

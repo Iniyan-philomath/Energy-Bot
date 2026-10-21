@@ -1,5 +1,6 @@
 export function readConfig(env = process.env) {
-  const origins = (env.ALLOWED_ORIGINS || "https://energybot.onrender.com")
+  const defaultOrigins = "https://energybot.onrender.com,https://energy-bot-5yke.onrender.com,http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173";
+  const origins = (env.ALLOWED_ORIGINS || defaultOrigins)
     .split(",")
     .map((v) => v.trim())
     .filter(Boolean);
@@ -43,6 +44,6 @@ export function readConfig(env = process.env) {
     objectPath,
     supabaseKey: env.SUPABASE_SECRET_KEY || env.SUPABASE_SERVICE_ROLE_KEY || "",
     groqKey: env.GROQ_API_KEY || "",
-    model: env.GROQ_MODEL || "llama-3.3-70b-versatile",
+    model: env.GROQ_MODEL || "openai/gpt-oss-120b",
   };
 }

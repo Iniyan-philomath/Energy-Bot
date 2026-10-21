@@ -37,23 +37,38 @@ export function createProviders(config) {
     },
     async complete(messages, maxTokens) {
       if (!groq) throw new ServiceError("MODEL_NOT_CONFIGURED");
-      try {
-        const response = await groq.chat.completions.create({
-          model: config.model,
-          messages,
-          temperature: 0.1,
-          max_tokens: maxTokens,
-          response_format: { type: "json_object" },
-        });
-        const choice = response.choices[0];
-        if (!choice?.message.content || choice.finish_reason !== "stop")
-          throw new ServiceError("MODEL_RESPONSE_INVALID", 502);
-        return choice.message.content;
-      } catch (error) {
-        if (error instanceof ServiceError) throw error;
-        if (error.status === 429) throw new ServiceError("MODEL_BUSY", 429);
-        throw new ServiceError("MODEL_UNAVAILABLE", 502);
+      const modelsToTry = [
+        config.model,
+        "openai/gpt-oss-120b",
+        "qwen/qwen3.8-27b",
+        "openai/gpt-oss-20b",
+      ].filter((m, i, arr) => m && arr.indexOf(m) === i);
+
+      let lastError;
+      for (const modelName of modelsToTry) {
+        try {
+          const response = await groq.chat.completions.create({
+            model: modelName,
+            messages,
+            temperature: 0.1,
+            max_tokens: maxTokens,
+            response_format: { type: "json_object" },
+          });
+          const choice = response.choices[0];
+          if (!choice?.message?.content)
+            throw new ServiceError("MODEL_RESPONSE_INVALID", 502);
+          return choice.message.content;
+        } catch (error) {
+          lastError = error;
+          console.warn(`Groq model ${modelName} error:`, error?.status || error?.message);
+          if (error instanceof ServiceError) throw error;
+          if (error?.status === 429) continue;
+          if (error?.code === "model_not_found" || error?.message?.includes("does not exist")) continue;
+        }
       }
+      if (lastError?.status === 429) throw new ServiceError("MODEL_BUSY", 429);
+      console.error("All Groq model attempts failed:", lastError);
+      throw new ServiceError("MODEL_UNAVAILABLE", 502);
     },
   };
 }
