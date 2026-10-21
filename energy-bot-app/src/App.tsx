@@ -132,7 +132,7 @@ export default function App() {
   }]);
 
   const [toast, setToast]   = useState("");
-  const [sound, setSound]   = useState(false);
+  const [sound, setSound]   = useState(true);
   const [showIntro, setShowIntro] = useState(true);
   const [showLightning, setShowLightning] = useState(false);
 

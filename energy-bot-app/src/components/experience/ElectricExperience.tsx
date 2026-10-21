@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
-import { Zap } from "lucide-react";
+import { Volume2, VolumeX, Zap } from "lucide-react";
 import {
   playElectricClickSound,
   playLightningThunderSound,
@@ -27,7 +27,7 @@ function createBolt(
     by: number,
     disp: number
   ) {
-    if (disp < 7) {
+    if (disp < 6) {
       segments.push({ x1: ax, y1: ay, x2: bx, y2: by });
       return;
     }
@@ -35,12 +35,12 @@ function createBolt(
     const midX = (ax + bx) / 2 + (Math.random() - 0.5) * disp;
     const midY = (ay + by) / 2 + (Math.random() - 0.5) * disp;
 
-    drawSegment(ax, ay, midX, midY, disp / 2);
-    drawSegment(midX, midY, bx, by, disp / 2);
+    drawSegment(ax, ay, midX, midY, disp / 1.8);
+    drawSegment(midX, midY, bx, by, disp / 1.8);
 
     if (Math.random() < branchProbability) {
-      const branchAngle = (Math.random() - 0.5) * 0.9;
-      const len = Math.hypot(bx - ax, by - ay) * 0.45;
+      const branchAngle = (Math.random() - 0.5) * 0.95;
+      const len = Math.hypot(bx - ax, by - ay) * 0.5;
       const angle = Math.atan2(by - ay, bx - ax) + branchAngle;
       const endX = midX + Math.cos(angle) * len;
       const endY = midY + Math.sin(angle) * len;
@@ -83,24 +83,25 @@ export function LightningStormCanvas({ active = true }: { active?: boolean }) {
     const bolts: ActiveBolt[] = [];
 
     const spawnBolt = () => {
-      const startX = Math.random() * width;
+      const startX = width * (0.15 + Math.random() * 0.7);
       const startY = 0;
-      const endX = startX + (Math.random() - 0.5) * (width * 0.35);
-      const endY = height * (0.45 + Math.random() * 0.55);
+      const endX = width / 2 + (Math.random() - 0.5) * (width * 0.4);
+      const endY = height * (0.45 + Math.random() * 0.5);
 
-      const segments = createBolt(startX, startY, endX, endY, 120, 0.4);
+      const segments = createBolt(startX, startY, endX, endY, 130, 0.5);
       bolts.push({
         segments,
         alpha: 1.0,
-        width: Math.random() * 2.5 + 2,
-        color: Math.random() > 0.4 ? "#38bdf8" : "#a855f7",
+        width: Math.random() * 3 + 2.5,
+        color: Math.random() > 0.4 ? "#00f0ff" : "#00ff88",
       });
     };
 
-    // Spawn 2-3 instant initial bolts
     spawnBolt();
-    setTimeout(spawnBolt, 140);
-    setTimeout(spawnBolt, 280);
+    const t1 = setTimeout(spawnBolt, 350);
+    const t2 = setTimeout(spawnBolt, 850);
+    const t3 = setTimeout(spawnBolt, 1500);
+    const t4 = setTimeout(spawnBolt, 2100);
 
     const render = () => {
       ctx.clearRect(0, 0, width, height);
@@ -110,7 +111,7 @@ export function LightningStormCanvas({ active = true }: { active?: boolean }) {
         ctx.save();
         ctx.strokeStyle = b.color;
         ctx.shadowColor = b.color;
-        ctx.shadowBlur = 18;
+        ctx.shadowBlur = 24;
         ctx.lineWidth = b.width;
         ctx.globalAlpha = Math.max(0, b.alpha);
 
@@ -121,15 +122,13 @@ export function LightningStormCanvas({ active = true }: { active?: boolean }) {
         }
         ctx.stroke();
 
-        // White core highlight
         ctx.strokeStyle = "#ffffff";
-        ctx.lineWidth = Math.max(1, b.width * 0.4);
-        ctx.shadowBlur = 6;
+        ctx.lineWidth = Math.max(1, b.width * 0.45);
+        ctx.shadowBlur = 8;
         ctx.stroke();
-
         ctx.restore();
 
-        b.alpha -= 0.055;
+        b.alpha -= 0.035;
         if (b.alpha <= 0) {
           bolts.splice(i, 1);
         }
@@ -141,6 +140,10 @@ export function LightningStormCanvas({ active = true }: { active?: boolean }) {
     render();
 
     return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+      clearTimeout(t4);
       window.removeEventListener("resize", onResize);
       cancelAnimationFrame(animId);
     };
@@ -160,10 +163,105 @@ export function LightningStormCanvas({ active = true }: { active?: boolean }) {
   );
 }
 
-/* ─── 2. Fast Thunder Strike Entrance (500–900ms Entrance) ───────────────── */
+/* ─── 2. 3D Sci-Fi Energy Reactor Core (WebGL / SVG 3D Layer) ────────────── */
+export function Reactor({ compact = false }: { compact?: boolean }) {
+  return (
+    <div
+      style={{
+        position: "relative",
+        width: compact ? 120 : 160,
+        height: compact ? 120 : 160,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+      aria-hidden="true"
+    >
+      <div
+        style={{
+          position: "absolute",
+          inset: -15,
+          borderRadius: "50%",
+          background: "radial-gradient(circle, rgba(0, 240, 255, 0.3) 0%, rgba(124, 58, 237, 0.15) 50%, transparent 75%)",
+          filter: "blur(18px)",
+          animation: "reactor-pulse 2.5s ease-in-out infinite",
+        }}
+      />
+      <svg
+        viewBox="0 0 200 200"
+        style={{
+          width: "100%",
+          height: "100%",
+          filter: "drop-shadow(0 0 16px rgba(0, 240, 255, 0.6))",
+        }}
+      >
+        <circle
+          cx="100"
+          cy="100"
+          r="86"
+          fill="none"
+          stroke="rgba(0, 240, 255, 0.45)"
+          strokeWidth="2"
+          strokeDasharray="6 8"
+          style={{ transformOrigin: "center", animation: "cursor-spin 10s linear infinite" }}
+        />
+        <circle
+          cx="100"
+          cy="100"
+          r="72"
+          fill="none"
+          stroke="rgba(124, 58, 237, 0.65)"
+          strokeWidth="3"
+          strokeDasharray="18 10 4 10"
+          style={{ transformOrigin: "center", animation: "cursor-spin 7s linear infinite reverse" }}
+        />
+        <circle
+          cx="100"
+          cy="100"
+          r="54"
+          fill="none"
+          stroke="rgba(0, 255, 136, 0.85)"
+          strokeWidth="2.5"
+          strokeDasharray="30 14"
+          style={{ transformOrigin: "center", animation: "cursor-spin 4s linear infinite" }}
+        />
+        <circle
+          cx="100"
+          cy="100"
+          r="38"
+          fill="url(#core-glow)"
+          stroke="#ffffff"
+          strokeWidth="2"
+        />
+        <defs>
+          <radialGradient id="core-glow">
+            <stop offset="0%" stopColor="#ffffff" />
+            <stop offset="40%" stopColor="#00f0ff" />
+            <stop offset="80%" stopColor="#7c3aed" />
+            <stop offset="100%" stopColor="#050814" />
+          </radialGradient>
+        </defs>
+      </svg>
+      <div
+        style={{
+          position: "absolute",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <Zap size={compact ? 24 : 32} color="#ffffff" fill="#ffffff" />
+      </div>
+    </div>
+  );
+}
+
+/* ─── 3. Full 3-Second Cinematic Thunder Strike Loading Entrance ─────────── */
 export function PowerIntro({ onFinish }: { onFinish: () => void }) {
   const reduced = useReducedMotion();
-  const [flashing, setFlashing] = useState(false);
+  const [strobe, setStrobe] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [voltage, setVoltage] = useState(0);
 
   useEffect(() => {
     if (reduced) {
@@ -171,44 +269,74 @@ export function PowerIntro({ onFinish }: { onFinish: () => void }) {
       return;
     }
 
+    // Sound ON immediately upon load
     try {
       playReactorPowerUpSound();
     } catch {
       // Audio autoplay policy fallback
     }
 
-    // Trigger thunder flash & strike at 220ms
-    const tFlash = setTimeout(() => {
-      setFlashing(true);
-      try {
-        playLightningThunderSound();
-      } catch {
-        // Fallback
-      }
-      setTimeout(() => setFlashing(false), 240);
-    }, 220);
+    // Voltage ramp up to 1250 kV across 3 seconds
+    const voltTimer = setInterval(() => {
+      setVoltage((v) => {
+        const next = v + Math.floor(Math.random() * 55 + 30);
+        return next >= 1250 ? 1250 : next;
+      });
+    }, 60);
 
-    // End intro cleanly at 850ms, revealing the full chat workspace
-    const tEnd = setTimeout(() => {
+    // Initial Thunder Strike at 700ms
+    const tStrike1 = setTimeout(() => {
+      setStrobe(true);
+      try {
+        if (soundEnabled) playLightningThunderSound();
+      } catch {
+        /* ok */
+      }
+      setTimeout(() => setStrobe(false), 220);
+    }, 700);
+
+    // Second Powerful Thunder Strike at 1600ms
+    const tStrike2 = setTimeout(() => {
+      setStrobe(true);
+      try {
+        if (soundEnabled) playLightningThunderSound();
+      } catch {
+        /* ok */
+      }
+      setTimeout(() => setStrobe(false), 260);
+    }, 1600);
+
+    // Third Flash at 2400ms
+    const tStrike3 = setTimeout(() => {
+      setStrobe(true);
+      setTimeout(() => setStrobe(false), 200);
+    }, 2400);
+
+    // Full 3.1-second entrance before revealing the active chat workspace
+    const tComplete = setTimeout(() => {
+      clearInterval(voltTimer);
       onFinish();
-    }, 850);
+    }, 3100);
 
     return () => {
-      clearTimeout(tFlash);
-      clearTimeout(tEnd);
+      clearInterval(voltTimer);
+      clearTimeout(tStrike1);
+      clearTimeout(tStrike2);
+      clearTimeout(tStrike3);
+      clearTimeout(tComplete);
     };
-  }, [onFinish, reduced]);
+  }, [onFinish, reduced, soundEnabled]);
 
   return (
     <motion.div
       initial={{ opacity: 1 }}
-      exit={{ opacity: 0, scale: 1.02 }}
-      transition={{ duration: 0.35, ease: "easeInOut" }}
+      exit={{ opacity: 0, scale: 1.04 }}
+      transition={{ duration: 0.6, ease: "easeInOut" }}
       style={{
         position: "fixed",
         inset: 0,
-        zIndex: 9999,
-        background: "#080c18",
+        zIndex: 99999,
+        background: "radial-gradient(circle at center, #0e1726 0%, #050811 100%)",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
@@ -216,6 +344,7 @@ export function PowerIntro({ onFinish }: { onFinish: () => void }) {
         overflow: "hidden",
       }}
     >
+      {/* 3-Second Branching Lightning Canvas */}
       <LightningStormCanvas active={true} />
 
       {/* Screen flash strobe */}
@@ -223,107 +352,210 @@ export function PowerIntro({ onFinish }: { onFinish: () => void }) {
         style={{
           position: "absolute",
           inset: 0,
-          background: "radial-gradient(circle, rgba(56, 189, 248, 0.45) 0%, rgba(168, 85, 247, 0.25) 50%, transparent 80%)",
-          opacity: flashing ? 1 : 0,
+          background: "radial-gradient(circle, rgba(0, 240, 255, 0.45) 0%, rgba(124, 58, 237, 0.3) 50%, transparent 80%)",
+          opacity: strobe ? 1 : 0,
           transition: "opacity 0.08s ease",
           pointerEvents: "none",
         }}
       />
 
-      {/* Central Energizing Badge */}
+      {/* Top controls: Sound ON and Skip */}
+      <div
+        style={{
+          position: "absolute",
+          top: 24,
+          right: 28,
+          display: "flex",
+          gap: 12,
+          zIndex: 10,
+        }}
+      >
+        <button
+          onClick={() => {
+            setSoundEnabled((s) => !s);
+            if (!soundEnabled) {
+              try {
+                playReactorPowerUpSound();
+              } catch {
+                /* ok */
+              }
+            }
+          }}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+            padding: "8px 14px",
+            borderRadius: 999,
+            background: "rgba(255, 255, 255, 0.1)",
+            border: "1px solid rgba(255, 255, 255, 0.2)",
+            color: soundEnabled ? "#00f0ff" : "#94a3b8",
+            fontSize: 13,
+            fontWeight: 600,
+            cursor: "pointer",
+            backdropFilter: "blur(8px)",
+          }}
+        >
+          {soundEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
+          Sound: {soundEnabled ? "ON" : "OFF"}
+        </button>
+
+        <button
+          onClick={onFinish}
+          style={{
+            padding: "8px 16px",
+            borderRadius: 999,
+            background: "rgba(124, 58, 237, 0.35)",
+            border: "1px solid rgba(124, 58, 237, 0.5)",
+            color: "#ffffff",
+            fontSize: 13,
+            fontWeight: 600,
+            cursor: "pointer",
+            backdropFilter: "blur(8px)",
+          }}
+        >
+          Skip Intro ➔
+        </button>
+      </div>
+
+      {/* 3D Arc Reactor Animation Centerpiece */}
       <motion.div
-        initial={{ scale: 0.6, opacity: 0 }}
-        animate={{ scale: [0.6, 1.15, 1], opacity: 1 }}
-        transition={{ duration: 0.7, ease: "easeOut" }}
+        initial={{ scale: 0.7, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ duration: 0.8, type: "spring" }}
         style={{
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
-          gap: 16,
-          zIndex: 1,
+          gap: 20,
+          zIndex: 2,
         }}
       >
-        <div
-          style={{
-            width: 80,
-            height: 80,
-            borderRadius: 24,
-            background: "linear-gradient(135deg, #7c3aed 0%, #3b82f6 50%, #06b6d4 100%)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            boxShadow: "0 0 50px rgba(59, 130, 246, 0.6), 0 0 20px rgba(124, 58, 237, 0.8)",
-          }}
-        >
-          <Zap size={44} color="#ffffff" fill="#ffffff" />
-        </div>
+        <Reactor compact={false} />
 
         <div style={{ textAlign: "center" }}>
           <div
             style={{
-              fontSize: 22,
-              fontWeight: 800,
+              fontSize: 26,
+              fontWeight: 900,
               letterSpacing: "0.08em",
               color: "#ffffff",
               textTransform: "uppercase",
-              fontFamily: "var(--font-sans)",
             }}
           >
-            ELECTRA <span style={{ color: "#38bdf8" }}>AI</span>
+            ELECTRA <span style={{ color: "#00f0ff" }}>AI</span>
           </div>
           <div
             style={{
-              fontSize: 13,
-              color: "rgba(255, 255, 255, 0.65)",
-              marginTop: 4,
-              letterSpacing: "0.04em",
+              fontSize: 14,
+              fontWeight: 600,
+              color: "#00ff88",
+              marginTop: 6,
+              letterSpacing: "0.05em",
             }}
           >
-            ⚡ SYNCHRONIZING ENERGY WORKSPACE…
+            ⚡ THUNDER STRIKE IN PROGRESS · {voltage} kV / 1250 kV
           </div>
+        </div>
+
+        {/* High Voltage Loading Progress Bar */}
+        <div
+          style={{
+            width: 260,
+            height: 6,
+            borderRadius: 3,
+            background: "rgba(255, 255, 255, 0.15)",
+            overflow: "hidden",
+            marginTop: 4,
+          }}
+        >
+          <div
+            style={{
+              width: `${(voltage / 1250) * 100}%`,
+              height: "100%",
+              background: "linear-gradient(90deg, #7c3aed, #00f0ff, #00ff88)",
+              transition: "width 0.1s linear",
+            }}
+          />
         </div>
       </motion.div>
     </motion.div>
   );
 }
 
-/* ─── 3. Electric Spark Ripple on Click ─────────────────────────────────── */
+/* ─── 4. Full Electric Cursor (Glowing Dot + Rotating Ring + Spark Ripple) ── */
 export function ElectricCursor() {
+  const cursorDot = useRef<HTMLDivElement>(null);
+  const cursorRing = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
-    const handleClick = (e: MouseEvent) => {
+    let mouseX = -100;
+    let mouseY = -100;
+    let ringX = -100;
+    let ringY = -100;
+    let animId: number;
+
+    const onPointerMove = (e: MouseEvent) => {
+      mouseX = e.clientX;
+      mouseY = e.clientY;
+
+      if (cursorDot.current) {
+        cursorDot.current.style.transform = `translate3d(${mouseX}px, ${mouseY}px, 0)`;
+        cursorDot.current.style.opacity = "1";
+      }
+
+      const isInteractive = !!(e.target as HTMLElement)?.closest?.(
+        "button, a, input, textarea, select, [role='button'], .prompt-chip, .mode-tab"
+      );
+
+      if (cursorRing.current) {
+        cursorRing.current.classList.toggle("cursor-hovering", isInteractive);
+      }
+    };
+
+    const onPointerClick = (e: MouseEvent) => {
       try {
         playElectricClickSound();
       } catch {
-        // Fallback
+        /* ok */
       }
 
       const ripple = document.createElement("div");
       ripple.className = "cursor-spark-ripple";
-      ripple.style.position = "fixed";
       ripple.style.left = `${e.clientX}px`;
       ripple.style.top = `${e.clientY}px`;
-      ripple.style.width = "22px";
-      ripple.style.height = "22px";
-      ripple.style.marginLeft = "-11px";
-      ripple.style.marginTop = "-11px";
-      ripple.style.borderRadius = "50%";
-      ripple.style.pointerEvents = "none";
-      ripple.style.border = "2px solid #38bdf8";
-      ripple.style.boxShadow = "0 0 12px #38bdf8, 0 0 24px #a855f7";
-      ripple.style.zIndex = "99999";
-      ripple.style.animation = "spark-expand 0.45s ease-out forwards";
       document.body.appendChild(ripple);
 
-      setTimeout(() => ripple.remove(), 480);
+      setTimeout(() => ripple.remove(), 550);
     };
 
-    window.addEventListener("click", handleClick);
-    return () => window.removeEventListener("click", handleClick);
+    const animateRing = () => {
+      ringX += (mouseX - ringX) * 0.22;
+      ringY += (mouseY - ringY) * 0.22;
+
+      if (cursorRing.current) {
+        cursorRing.current.style.transform = `translate3d(${ringX}px, ${ringY}px, 0)`;
+        cursorRing.current.style.opacity = "1";
+      }
+
+      animId = requestAnimationFrame(animateRing);
+    };
+
+    animId = requestAnimationFrame(animateRing);
+    window.addEventListener("pointermove", onPointerMove);
+    window.addEventListener("click", onPointerClick);
+
+    return () => {
+      window.removeEventListener("pointermove", onPointerMove);
+      window.removeEventListener("click", onPointerClick);
+      cancelAnimationFrame(animId);
+    };
   }, []);
 
-  return null;
-}
-
-export function Reactor() {
-  return null;
+  return (
+    <>
+      <div className="electric-cursor-dot" ref={cursorDot} aria-hidden="true" />
+      <div className="electric-cursor-ring" ref={cursorRing} aria-hidden="true" />
+    </>
+  );
 }

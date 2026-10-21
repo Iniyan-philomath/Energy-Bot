@@ -410,28 +410,41 @@
   padding: 12px 0 16px;
 }
 
-/* Electra mark (animated identity) */
+/* Electra mark (3D animated identity) */
 .electra-mark {
-  width: 64px;
-  height: 64px;
-  border-radius: 20px;
-  background: linear-gradient(135deg, var(--violet-500) 0%, var(--blue-500) 50%, var(--teal-500) 100%);
+  width: 68px;
+  height: 68px;
+  border-radius: 22px;
+  background: linear-gradient(135deg, #7c3aed 0%, #3b82f6 50%, #00f0ff 100%);
   display: flex;
   align-items: center;
   justify-content: center;
   margin: 0 auto 16px;
   box-shadow:
-    0 10px 32px rgba(124, 58, 237, 0.35),
-    0 2px 10px rgba(59, 130, 246, 0.28),
-    inset 0 1px 1px rgba(255, 255, 255, 0.35);
+    0 12px 36px rgba(124, 58, 237, 0.45),
+    0 4px 16px rgba(0, 240, 255, 0.35),
+    inset 0 2px 2px rgba(255, 255, 255, 0.5),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.3);
   animation: electra-float 4s ease-in-out infinite;
   position: relative;
   flex-shrink: 0;
+  transform-style: preserve-3d;
+  perspective: 800px;
 }
 
 @keyframes electra-float {
-  0%, 100% { transform: translateY(0); }
-  50%       { transform: translateY(-6px); }
+  0%, 100% {
+    transform: translateY(0) rotateX(0deg) rotateY(0deg);
+  }
+  25% {
+    transform: translateY(-4px) rotateX(6deg) rotateY(8deg);
+  }
+  50% {
+    transform: translateY(-8px) rotateX(0deg) rotateY(0deg);
+  }
+  75% {
+    transform: translateY(-4px) rotateX(-6deg) rotateY(-8deg);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1261,7 +1274,69 @@
 }
 
 .cursor-spark-ripple {
+  position: fixed;
   pointer-events: none;
   border-radius: 50%;
+  border: 2px solid #00f0ff;
+  box-shadow: 0 0 20px #00ff88;
+  z-index: 99999;
   animation: spark-expand 0.45s cubic-bezier(0.1, 0.9, 0.2, 1) forwards;
+}
+
+/* ── High-Voltage Electric Cursor ── */
+.electric-cursor-dot {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 8px;
+  height: 8px;
+  margin: -4px 0 0 -4px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 0 10px #00ff88, 0 0 20px #00f0ff;
+  pointer-events: none;
+  z-index: 100000;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.electric-cursor-ring {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 32px;
+  height: 32px;
+  margin: -16px 0 0 -16px;
+  border: 1.5px dashed rgba(0, 255, 136, 0.75);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 99999;
+  opacity: 0;
+  transition: width 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+              height 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+              margin 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.2s,
+              background 0.2s;
+  animation: cursor-spin 6s linear infinite;
+}
+
+.electric-cursor-ring.cursor-hovering {
+  width: 52px;
+  height: 52px;
+  margin: -26px 0 0 -26px;
+  border-color: #00f0ff;
+  border-style: solid;
+  background: rgba(0, 240, 255, 0.08);
+  box-shadow: 0 0 25px rgba(0, 240, 255, 0.4);
+}
+
+@keyframes cursor-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (max-width: 768px) {
+  .electric-cursor-dot,
+  .electric-cursor-ring {
+    display: none !important;
+  }
 }
