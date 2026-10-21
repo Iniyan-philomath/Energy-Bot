@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Volume2, VolumeX, Zap } from "lucide-react";
 import {
   playElectricClickSound,
@@ -257,10 +257,8 @@ export function Reactor({ compact = false }: { compact?: boolean }) {
     </div>
   );
 }
-
-/* ─── 3. Full 3-Second Cinematic Thunder Strike Loading Entrance ─────────── */
+/* ─── 3. Full 3-Second Cinematic Thunder Strike Intro ────────────────────── */
 export function PowerIntro({ onFinish }: { onFinish: () => void }) {
-  const reduced = useReducedMotion();
   const [strobe, setStrobe] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const soundEnabledRef = useRef(true);
@@ -269,38 +267,23 @@ export function PowerIntro({ onFinish }: { onFinish: () => void }) {
   const finishCalledRef = useRef(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // Keep ref in sync so timeouts capture latest value
   useEffect(() => {
     soundEnabledRef.current = soundEnabled;
   }, [soundEnabled]);
 
   useEffect(() => {
-    if (reduced) {
-      onFinish();
-      return;
-    }
-
-    // Create the audio element pointing to the real file
+    // Create the audio element pointing to the real file in /public
     const audio = new Audio("/electric_shock.mp3");
-    audio.volume = 0.85;
+    audio.volume = 0.9;
     audioRef.current = audio;
 
-    // Start the full sequence
     setStage("striking");
 
-    // Play the electric_shock sound immediately
-    const tryPlay = () => {
-      if (soundEnabledRef.current) {
-        audio.currentTime = 0;
-        audio.play().catch(() => {/* autoplay blocked, will retry on click */});
-      }
-    };
-    tryPlay();
-
-    // Also fire the Web Audio reactor power-up
+    // Play sound on mount — browsers may block without user gesture
+    audio.play().catch(() => { /* autoplay blocked; user can click */ });
     try { playReactorPowerUpSound(); } catch { /* ok */ }
 
-    // Voltage ramp: 0 → 1250 kV in ~3 seconds
+    // Voltage counter: 0 → 1250 kV over ~3 seconds
     let curV = 0;
     const voltInterval = setInterval(() => {
       curV += Math.floor(Math.random() * 52 + 28);
@@ -308,36 +291,32 @@ export function PowerIntro({ onFinish }: { onFinish: () => void }) {
       setVoltage(curV);
     }, 60);
 
-    // Strobe flash #1 at 600ms
+    // Strobe #1 + thunder at 600ms
     const t1 = setTimeout(() => {
       setStrobe(true);
       try { if (soundEnabledRef.current) playLightningThunderSound(); } catch { /* ok */ }
       setTimeout(() => setStrobe(false), 260);
     }, 600);
 
-    // Replay sound + strobe flash #2 at 1500ms
+    // Strobe #2 + replay electric_shock at 1500ms
     const t2 = setTimeout(() => {
       setStrobe(true);
-      if (soundEnabledRef.current) {
-        audio.currentTime = 0;
-        audio.play().catch(() => {});
-      }
+      audio.currentTime = 0;
+      audio.play().catch(() => {});
       try { if (soundEnabledRef.current) playLightningThunderSound(); } catch { /* ok */ }
       setTimeout(() => setStrobe(false), 300);
     }, 1500);
 
-    // Strobe flash #3 at 2400ms
+    // Strobe #3 at 2400ms
     const t3 = setTimeout(() => {
       setStrobe(true);
       setTimeout(() => setStrobe(false), 200);
     }, 2400);
 
-    // Transition to "ignited" state at 2600ms
-    const t4 = setTimeout(() => {
-      setStage("ignited");
-    }, 2600);
+    // Transition to ignited at 2600ms
+    const t4 = setTimeout(() => setStage("ignited"), 2600);
 
-    // HARD EXIT at exactly 3500ms — guaranteed, no dependency issues
+    // Hard finish at 3500ms — no early exit
     const t5 = setTimeout(() => {
       clearInterval(voltInterval);
       setVoltage(1250);
@@ -348,16 +327,14 @@ export function PowerIntro({ onFinish }: { onFinish: () => void }) {
     }, 3500);
 
     return () => {
-      clearTimeout(t1);
-      clearTimeout(t2);
-      clearTimeout(t3);
-      clearTimeout(t4);
-      clearTimeout(t5);
+      clearTimeout(t1); clearTimeout(t2); clearTimeout(t3);
+      clearTimeout(t4); clearTimeout(t5);
       clearInterval(voltInterval);
       audio.pause();
     };
+  // Run exactly once on mount — no deps
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // ← Empty deps: run once on mount, no re-runs
+  }, []);
 
   return (
     <motion.div
@@ -518,11 +495,12 @@ export function PowerIntro({ onFinish }: { onFinish: () => void }) {
         {/* Click anywhere or button to unblock browser sound */}
         <button
           onClick={() => {
-            try {
-              playLightningThunderSound();
-            } catch {
-              /* ok */
+            // This user gesture unblocks autoplay — plays the real file
+            if (audioRef.current) {
+              audioRef.current.currentTime = 0;
+              audioRef.current.play().catch(() => {});
             }
+            try { playLightningThunderSound(); } catch { /* ok */ }
           }}
           style={{
             marginTop: 8,
