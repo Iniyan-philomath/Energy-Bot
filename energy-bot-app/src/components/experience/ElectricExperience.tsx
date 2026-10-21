@@ -263,24 +263,34 @@ export function PowerIntro({ onFinish }: { onFinish: () => void }) {
   const [soundEnabled, setSoundEnabled] = useState(true);
   const soundEnabledRef = useRef(true);
   const [voltage, setVoltage] = useState(0);
-  const [stage, setStage] = useState<"standby" | "striking" | "ignited">("standby");
+  const [stage, setStage] = useState<"gate" | "standby" | "striking" | "ignited">("gate");
   const finishCalledRef = useRef(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   useEffect(() => {
     soundEnabledRef.current = soundEnabled;
   }, [soundEnabled]);
 
+  // Pre-load the audio file so it's ready to play instantly on click
   useEffect(() => {
-    // Create the audio element pointing to the real file in /public
     const audio = new Audio("/electric_shock.mp3");
     audio.volume = 0.9;
+    audio.preload = "auto";
+    audio.load();
     audioRef.current = audio;
+    return () => { audio.pause(); };
+  }, []);
 
+  const launchSequence = () => {
+    const audio = audioRef.current;
     setStage("striking");
 
-    // Play sound on mount — browsers may block without user gesture
-    audio.play().catch(() => { /* autoplay blocked; user can click */ });
+    // ── Play sound immediately (this runs inside a user-gesture callback) ──
+    if (audio && soundEnabledRef.current) {
+      audio.currentTime = 0;
+      audio.play().catch(() => {});
+    }
     try { playReactorPowerUpSound(); } catch { /* ok */ }
 
     // Voltage counter: 0 → 1250 kV over ~3 seconds
@@ -291,33 +301,41 @@ export function PowerIntro({ onFinish }: { onFinish: () => void }) {
       setVoltage(curV);
     }, 60);
 
+    const addTimer = (fn: () => void, ms: number) => {
+      const id = setTimeout(fn, ms);
+      timersRef.current.push(id);
+      return id;
+    };
+
     // Strobe #1 + thunder at 600ms
-    const t1 = setTimeout(() => {
+    addTimer(() => {
       setStrobe(true);
       try { if (soundEnabledRef.current) playLightningThunderSound(); } catch { /* ok */ }
       setTimeout(() => setStrobe(false), 260);
     }, 600);
 
     // Strobe #2 + replay electric_shock at 1500ms
-    const t2 = setTimeout(() => {
+    addTimer(() => {
       setStrobe(true);
-      audio.currentTime = 0;
-      audio.play().catch(() => {});
+      if (audio && soundEnabledRef.current) {
+        audio.currentTime = 0;
+        audio.play().catch(() => {});
+      }
       try { if (soundEnabledRef.current) playLightningThunderSound(); } catch { /* ok */ }
       setTimeout(() => setStrobe(false), 300);
     }, 1500);
 
     // Strobe #3 at 2400ms
-    const t3 = setTimeout(() => {
+    addTimer(() => {
       setStrobe(true);
       setTimeout(() => setStrobe(false), 200);
     }, 2400);
 
-    // Transition to ignited at 2600ms
-    const t4 = setTimeout(() => setStage("ignited"), 2600);
+    // Ignited state at 2600ms
+    addTimer(() => setStage("ignited"), 2600);
 
-    // Hard finish at 3500ms — no early exit
-    const t5 = setTimeout(() => {
+    // Hard finish at 3500ms
+    addTimer(() => {
       clearInterval(voltInterval);
       setVoltage(1250);
       if (!finishCalledRef.current) {
@@ -325,16 +343,8 @@ export function PowerIntro({ onFinish }: { onFinish: () => void }) {
         onFinish();
       }
     }, 3500);
+  };
 
-    return () => {
-      clearTimeout(t1); clearTimeout(t2); clearTimeout(t3);
-      clearTimeout(t4); clearTimeout(t5);
-      clearInterval(voltInterval);
-      audio.pause();
-    };
-  // Run exactly once on mount — no deps
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   return (
     <motion.div
@@ -345,7 +355,7 @@ export function PowerIntro({ onFinish }: { onFinish: () => void }) {
         position: "fixed",
         inset: 0,
         zIndex: 99999,
-        background: "radial-gradient(circle at center, #0e1726 0%, #050811 100%)",
+        background: "radial-gradient(ellipse at 60% 40%, #0d1b3e 0%, #050811 70%)",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
@@ -353,7 +363,7 @@ export function PowerIntro({ onFinish }: { onFinish: () => void }) {
         overflow: "hidden",
       }}
     >
-      {/* 3-Second Branching Lightning Canvas — stays active until ignited */}
+      {/* Lightning canvas — only after gate */}
       <LightningStormCanvas active={stage === "striking" || stage === "ignited"} />
 
       {/* Screen flash strobe */}
@@ -361,161 +371,135 @@ export function PowerIntro({ onFinish }: { onFinish: () => void }) {
         style={{
           position: "absolute",
           inset: 0,
-          background: "radial-gradient(circle, rgba(0, 240, 255, 0.45) 0%, rgba(124, 58, 237, 0.3) 50%, transparent 80%)",
+          background: "radial-gradient(circle, rgba(0, 240, 255, 0.5) 0%, rgba(124, 58, 237, 0.3) 50%, transparent 80%)",
           opacity: strobe ? 1 : 0,
-          transition: "opacity 0.08s ease",
+          transition: "opacity 0.07s ease",
           pointerEvents: "none",
         }}
       />
 
-      {/* Top controls: Sound ON and Skip */}
-      <div
-        style={{
-          position: "absolute",
-          top: 24,
-          right: 28,
-          display: "flex",
-          gap: 12,
-          zIndex: 10,
-        }}
-      >
-        <button
-          onClick={() => {
-            const next = !soundEnabled;
-            setSoundEnabled(next);
-            soundEnabledRef.current = next;
-            if (next && audioRef.current) {
-              // User just turned sound ON — play audio immediately
-              audioRef.current.currentTime = 0;
-              audioRef.current.play().catch(() => {});
-            } else if (!next && audioRef.current) {
-              audioRef.current.pause();
-            }
-          }}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 6,
-            padding: "8px 14px",
-            borderRadius: 999,
-            background: "rgba(255, 255, 255, 0.1)",
-            border: "1px solid rgba(255, 255, 255, 0.2)",
-            color: soundEnabled ? "#00f0ff" : "#94a3b8",
-            fontSize: 13,
-            fontWeight: 600,
-            cursor: "pointer",
-            backdropFilter: "blur(8px)",
-          }}
-        >
-          {soundEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
-          Sound: {soundEnabled ? "ON" : "OFF"}
-        </button>
-
-        <button
-          onClick={onFinish}
-          style={{
-            padding: "8px 16px",
-            borderRadius: 999,
-            background: "rgba(124, 58, 237, 0.35)",
-            border: "1px solid rgba(124, 58, 237, 0.5)",
-            color: "#ffffff",
-            fontSize: 13,
-            fontWeight: 600,
-            cursor: "pointer",
-            backdropFilter: "blur(8px)",
-          }}
-        >
-          Skip Intro ➔
-        </button>
-      </div>
-
-      {/* 3D Arc Reactor Animation Centerpiece */}
-      <motion.div
-        initial={{ scale: 0.7, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ duration: 0.8, type: "spring" }}
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          gap: 20,
-          zIndex: 2,
-        }}
-      >
-        <Reactor compact={false} />
-
-        <div style={{ textAlign: "center" }}>
-          <div
-            style={{
-              fontSize: 26,
-              fontWeight: 900,
-              letterSpacing: "0.08em",
-              color: "#ffffff",
-              textTransform: "uppercase",
-            }}
-          >
-            ELECTRA <span style={{ color: "#00f0ff" }}>AI</span>
-          </div>
-          <div
-            style={{
-              fontSize: 14,
-              fontWeight: 600,
-              color: stage === "ignited" ? "#00f0ff" : "#00ff88",
-              marginTop: 6,
-              letterSpacing: "0.05em",
-            }}
-          >
-            {stage === "ignited"
-              ? "⚡ POWER SEQUENCE COMPLETE · 1250 kV"
-              : `⚡ THUNDER STRIKE IN PROGRESS · ${voltage} kV / 1250 kV`}
-          </div>
-        </div>
-
-        {/* High Voltage Loading Progress Bar */}
+      {/* ── GATE SCREEN: shown until user taps ── */}
+      {stage === "gate" && (
         <div
           style={{
-            width: 260,
-            height: 6,
-            borderRadius: 3,
-            background: "rgba(255, 255, 255, 0.15)",
-            overflow: "hidden",
-            marginTop: 4,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: 32,
+            zIndex: 5,
           }}
         >
-          <div
-            style={{
-              width: `${(voltage / 1250) * 100}%`,
-              height: "100%",
-              background: "linear-gradient(90deg, #7c3aed, #00f0ff, #00ff88)",
-              transition: "width 0.1s linear",
-            }}
-          />
-        </div>
+          {/* Pulsing reactor logo */}
+          <Reactor compact={false} />
 
-        {/* Click anywhere or button to unblock browser sound */}
-        <button
-          onClick={() => {
-            // This user gesture unblocks autoplay — plays the real file
-            if (audioRef.current) {
-              audioRef.current.currentTime = 0;
-              audioRef.current.play().catch(() => {});
-            }
-            try { playLightningThunderSound(); } catch { /* ok */ }
-          }}
-          style={{
-            marginTop: 8,
-            padding: "6px 14px",
-            borderRadius: 999,
-            background: "transparent",
-            border: "1px dashed rgba(0, 240, 255, 0.4)",
-            color: "rgba(255, 255, 255, 0.65)",
-            fontSize: 12,
-            cursor: "pointer",
-          }}
-        >
-          🔊 Click to hear thunder roar
-        </button>
-      </motion.div>
+          <div style={{ textAlign: "center" }}>
+            <div style={{ fontSize: 32, fontWeight: 900, letterSpacing: "0.1em", color: "#ffffff", textTransform: "uppercase" }}>
+              ELECTRA <span style={{ color: "#00f0ff" }}>AI</span>
+            </div>
+            <div style={{ fontSize: 13, color: "rgba(255,255,255,0.45)", marginTop: 6, letterSpacing: "0.06em" }}>
+              ENERGY INTELLIGENCE SYSTEM
+            </div>
+          </div>
+
+          {/* The big TAP button — this is the user gesture that unlocks audio */}
+          <button
+            onClick={launchSequence}
+            style={{
+              position: "relative",
+              padding: "18px 52px",
+              borderRadius: 999,
+              background: "linear-gradient(135deg, #7c3aed, #00f0ff)",
+              border: "none",
+              color: "#ffffff",
+              fontSize: 18,
+              fontWeight: 800,
+              letterSpacing: "0.08em",
+              cursor: "pointer",
+              textTransform: "uppercase",
+              boxShadow: "0 0 40px rgba(0, 240, 255, 0.5), 0 0 80px rgba(124, 58, 237, 0.3)",
+              animation: "reactor-pulse 1.8s ease-in-out infinite",
+            }}
+          >
+            ⚡ TAP TO ENTER
+          </button>
+
+          <div style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", letterSpacing: "0.1em" }}>
+            SOUND ON · HEADPHONES RECOMMENDED
+          </div>
+        </div>
+      )}
+
+      {/* ── INTRO SEQUENCE: shown after tap ── */}
+      {stage !== "gate" && (
+        <>
+          {/* Skip + Sound controls */}
+          <div style={{ position: "absolute", top: 24, right: 28, display: "flex", gap: 12, zIndex: 10 }}>
+            <button
+              onClick={() => {
+                const next = !soundEnabled;
+                setSoundEnabled(next);
+                soundEnabledRef.current = next;
+                if (next && audioRef.current) {
+                  audioRef.current.currentTime = 0;
+                  audioRef.current.play().catch(() => {});
+                } else if (!next && audioRef.current) {
+                  audioRef.current.pause();
+                }
+              }}
+              style={{
+                display: "flex", alignItems: "center", gap: 6,
+                padding: "8px 14px", borderRadius: 999,
+                background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)",
+                color: soundEnabled ? "#00f0ff" : "#94a3b8",
+                fontSize: 13, fontWeight: 600, cursor: "pointer", backdropFilter: "blur(8px)",
+              }}
+            >
+              {soundEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
+              Sound: {soundEnabled ? "ON" : "OFF"}
+            </button>
+            <button
+              onClick={onFinish}
+              style={{
+                padding: "8px 16px", borderRadius: 999,
+                background: "rgba(124,58,237,0.35)", border: "1px solid rgba(124,58,237,0.5)",
+                color: "#ffffff", fontSize: 13, fontWeight: 600, cursor: "pointer", backdropFilter: "blur(8px)",
+              }}
+            >
+              Skip Intro ➔
+            </button>
+          </div>
+
+          {/* Reactor + text + progress */}
+          <motion.div
+            initial={{ scale: 0.7, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.6, type: "spring" }}
+            style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 20, zIndex: 2 }}
+          >
+            <Reactor compact={false} />
+            <div style={{ textAlign: "center" }}>
+              <div style={{ fontSize: 28, fontWeight: 900, letterSpacing: "0.08em", color: "#ffffff", textTransform: "uppercase" }}>
+                ELECTRA <span style={{ color: "#00f0ff" }}>AI</span>
+              </div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: stage === "ignited" ? "#00f0ff" : "#00ff88", marginTop: 6, letterSpacing: "0.05em" }}>
+                {stage === "ignited"
+                  ? "⚡ POWER SEQUENCE COMPLETE · 1250 kV"
+                  : `⚡ THUNDER STRIKE IN PROGRESS · ${voltage} kV / 1250 kV`}
+              </div>
+            </div>
+            <div style={{ width: 260, height: 6, borderRadius: 3, background: "rgba(255,255,255,0.15)", overflow: "hidden" }}>
+              <div
+                style={{
+                  width: `${(voltage / 1250) * 100}%`,
+                  height: "100%",
+                  background: "linear-gradient(90deg, #7c3aed, #00f0ff, #00ff88)",
+                  transition: "width 0.1s linear",
+                }}
+              />
+            </div>
+          </motion.div>
+        </>
+      )}
     </motion.div>
   );
 }
