@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { Volume2, VolumeX, Zap } from "lucide-react";
 import {
@@ -102,6 +102,7 @@ export function LightningStormCanvas({ active = true }: { active?: boolean }) {
     const t2 = setTimeout(spawnBolt, 850);
     const t3 = setTimeout(spawnBolt, 1500);
     const t4 = setTimeout(spawnBolt, 2100);
+    const t5 = setTimeout(spawnBolt, 2700);
 
     const render = () => {
       ctx.clearRect(0, 0, width, height);
@@ -144,6 +145,7 @@ export function LightningStormCanvas({ active = true }: { active?: boolean }) {
       clearTimeout(t2);
       clearTimeout(t3);
       clearTimeout(t4);
+      clearTimeout(t5);
       window.removeEventListener("resize", onResize);
       cancelAnimationFrame(animId);
     };
@@ -262,6 +264,62 @@ export function PowerIntro({ onFinish }: { onFinish: () => void }) {
   const [strobe, setStrobe] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [voltage, setVoltage] = useState(0);
+  const [stage, setStage] = useState<"standby" | "striking" | "ignited">("standby");
+
+  const startLightningSequence = useCallback(() => {
+    setStage("striking");
+
+    // Force play sound immediately (user gesture or auto)
+    try {
+      playReactorPowerUpSound();
+    } catch {
+      /* ok */
+    }
+
+    // Voltage ramp up to 1250 kV across 3 seconds
+    let curV = 0;
+    const voltInterval = setInterval(() => {
+      curV += Math.floor(Math.random() * 55 + 32);
+      if (curV >= 1250) {
+        curV = 1250;
+        clearInterval(voltInterval);
+      }
+      setVoltage(curV);
+    }, 60);
+
+    // Initial Thunder Strike at 600ms
+    setTimeout(() => {
+      setStrobe(true);
+      try {
+        if (soundEnabled) playLightningThunderSound();
+      } catch {
+        /* ok */
+      }
+      setTimeout(() => setStrobe(false), 240);
+    }, 600);
+
+    // Second Powerful Thunder Strike at 1500ms
+    setTimeout(() => {
+      setStrobe(true);
+      try {
+        if (soundEnabled) playLightningThunderSound();
+      } catch {
+        /* ok */
+      }
+      setTimeout(() => setStrobe(false), 280);
+    }, 1500);
+
+    // Fully ignited state at 2300ms
+    setTimeout(() => {
+      setStage("ignited");
+    }, 2300);
+
+    // Hold for full 3.4 seconds before revealing the active chat workspace
+    setTimeout(() => {
+      clearInterval(voltInterval);
+      onFinish();
+    }, 3400);
+  }, [soundEnabled, onFinish]);
 
   useEffect(() => {
     if (reduced) {
@@ -269,63 +327,9 @@ export function PowerIntro({ onFinish }: { onFinish: () => void }) {
       return;
     }
 
-    // Sound ON immediately upon load
-    try {
-      playReactorPowerUpSound();
-    } catch {
-      // Audio autoplay policy fallback
-    }
-
-    // Voltage ramp up to 1250 kV across 3 seconds
-    const voltTimer = setInterval(() => {
-      setVoltage((v) => {
-        const next = v + Math.floor(Math.random() * 55 + 30);
-        return next >= 1250 ? 1250 : next;
-      });
-    }, 60);
-
-    // Initial Thunder Strike at 700ms
-    const tStrike1 = setTimeout(() => {
-      setStrobe(true);
-      try {
-        if (soundEnabled) playLightningThunderSound();
-      } catch {
-        /* ok */
-      }
-      setTimeout(() => setStrobe(false), 220);
-    }, 700);
-
-    // Second Powerful Thunder Strike at 1600ms
-    const tStrike2 = setTimeout(() => {
-      setStrobe(true);
-      try {
-        if (soundEnabled) playLightningThunderSound();
-      } catch {
-        /* ok */
-      }
-      setTimeout(() => setStrobe(false), 260);
-    }, 1600);
-
-    // Third Flash at 2400ms
-    const tStrike3 = setTimeout(() => {
-      setStrobe(true);
-      setTimeout(() => setStrobe(false), 200);
-    }, 2400);
-
-    // Full 3.1-second entrance before revealing the active chat workspace
-    const tComplete = setTimeout(() => {
-      clearInterval(voltTimer);
-      onFinish();
-    }, 3100);
-
-    return () => {
-      clearInterval(voltTimer);
-      clearTimeout(tStrike1);
-      clearTimeout(tStrike2);
-      clearTimeout(tStrike3);
-      clearTimeout(tComplete);
-    };
-  }, [onFinish, reduced, soundEnabled]);
+    // Auto-trigger sequence on load
+    startLightningSequence();
+  }, [reduced, startLightningSequence, onFinish]);
 
   return (
     <motion.div
@@ -345,7 +349,7 @@ export function PowerIntro({ onFinish }: { onFinish: () => void }) {
       }}
     >
       {/* 3-Second Branching Lightning Canvas */}
-      <LightningStormCanvas active={true} />
+      <LightningStormCanvas active={stage === "striking"} />
 
       {/* Screen flash strobe */}
       <div
@@ -376,6 +380,7 @@ export function PowerIntro({ onFinish }: { onFinish: () => void }) {
             if (!soundEnabled) {
               try {
                 playReactorPowerUpSound();
+                playLightningThunderSound();
               } catch {
                 /* ok */
               }
@@ -449,12 +454,14 @@ export function PowerIntro({ onFinish }: { onFinish: () => void }) {
             style={{
               fontSize: 14,
               fontWeight: 600,
-              color: "#00ff88",
+              color: stage === "ignited" ? "#00f0ff" : "#00ff88",
               marginTop: 6,
               letterSpacing: "0.05em",
             }}
           >
-            ⚡ THUNDER STRIKE IN PROGRESS · {voltage} kV / 1250 kV
+            {stage === "ignited"
+              ? "⚡ POWER SEQUENCE COMPLETE · 1250 kV"
+              : `⚡ THUNDER STRIKE IN PROGRESS · ${voltage} kV / 1250 kV`}
           </div>
         </div>
 
@@ -478,6 +485,29 @@ export function PowerIntro({ onFinish }: { onFinish: () => void }) {
             }}
           />
         </div>
+
+        {/* Click anywhere or button to unblock browser sound */}
+        <button
+          onClick={() => {
+            try {
+              playLightningThunderSound();
+            } catch {
+              /* ok */
+            }
+          }}
+          style={{
+            marginTop: 8,
+            padding: "6px 14px",
+            borderRadius: 999,
+            background: "transparent",
+            border: "1px dashed rgba(0, 240, 255, 0.4)",
+            color: "rgba(255, 255, 255, 0.65)",
+            fontSize: 12,
+            cursor: "pointer",
+          }}
+        >
+          🔊 Click to hear thunder roar
+        </button>
       </motion.div>
     </motion.div>
   );
