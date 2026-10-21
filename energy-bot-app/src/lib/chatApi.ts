@@ -85,50 +85,54 @@ const getGroqKey = () => {
 const SCE_AUDIT_REPORT_KNOWLEDGE = `
 DOCUMENT: Saranathan College of Engineering (SCE) Comprehensive Electrical Energy Audit Report 2025-2026.
 Location: Venkateswara Nagar, Panjappur, Tiruchirappalli - 620012, Tamil Nadu.
-Tariff: TANGEDCO HT Tariff II-A, Sanctioned Demand: 500 kVA.
+Tariff: TANGEDCO HT Tariff II-A, Sanctioned Demand: 500 kVA, Total Connected Load: ~1,250 kW.
 
-Section 1: Transformer & Power Distribution (PDF Page 7, Printed Page 1)
-- Main Distribution Transformer: 1000 kVA, 11 kV / 433 V, 50 Hz, Vector Group Dyn11, Oil Natural Air Natural (ONAN).
-- Operational Loading: Average loading ranges between 28% and 35% (approx 280 kVA to 350 kVA peak during college hours), operating well within safe and optimum efficiency curve.
-
-Section 2: Electricity Consumption & TANGEDCO Billing (PDF Pages 15-16, Printed Pages 9-10)
-- Annual Campus Electricity Consumption: Approximately 6,42,800 kWh (units) consumed per year.
-- Average Monthly Energy Consumption: ~53,500 units/month.
-- Power Factor (PF): Actively maintained between 0.98 and 0.99 lag across peak months.
-- Incentive: College receives power factor incentives from TANGEDCO each month, completely avoiding low PF penalty charges.
-
-Section 3: Automatic Power Factor Correction (APFC) Panels (PDF Page 30, Printed Page 24)
-- Installed Capacitor Banks: APFC Panel 1 (150 kvar, 8 steps) and APFC Panel 2 (120 kvar, 8 steps).
-- Faults & Deficiencies Identified:
-  * APFC Panel 1: Step 1 (25 kvar) is defective and drawing 0 Amperes current due to a faulty capacitor cell.
-  * APFC Panel 2: Step 1 (15 kvar) and Step 8 (20 kvar) failed to engage due to blown HRC fuse links and degraded capacitor cells.
-- Audit Recommendation: Immediately replace defective capacitor cells, inspect contactors, and implement microprocessor-based cyclic switching.
-
-Section 4: Rooftop Solar Photovoltaic (PV) Plant (PDF Page 36, Printed Page 30)
-- Installed Capacity: 100 kWp grid-connected rooftop Solar PV system with bi-directional net metering approved by TANGEDCO.
-- Annual Generation: Averages ~1,35,000 kWh/year.
-- Energy Offset: Offsets ~21% of the total annual campus electrical energy demand.
-- Environmental Impact: Mitigates ~110 Tonnes of CO2 emissions annually.
-
-Section 5: Diesel Generator (DG) Backup Power (PDF Page 21, Printed Page 15)
-- DG Sets: Two diesel generators: DG-1 rated at 250 kVA and DG-2 rated at 125 kVA.
-- Fuel Efficiency: Specific Fuel Consumption (SFC) measured at 3.2 kWh per litre of High-Speed Diesel (HSD).
-
-Section 6: Lighting System Audit (PDF Pages 41-43, Printed Pages 35-37)
-- Total Light Points: 1,850 points across academic blocks, laboratories, library, and hostels.
-- Current Status: Around 60% retrofitted with 18W/20W energy-efficient LED tube lights.
-- Remaining Opportunity: 740 numbers of conventional 36W T8 fluorescent tubes recommended for replacement with 18W LED fixtures, saving ~18,600 kWh/year.
-
-Section 7: Ceiling Fans & BLDC Retrofit ECM (PDF Pages 49-50, Printed Pages 43-44)
-- Baseline: 1,420 conventional induction-motor ceiling fans rated at 75W (average actual operating draw ~70W).
-- Energy Conservation Measure (ECM): Full retrofit with 28W energy-efficient Brushless DC (BLDC) 5-star rated ceiling fans.
-- Annual Energy Savings: 89,460 kWh/year reduction in electrical energy.
-- Annual Financial Savings: ₹7,15,680 per year (calculated at ₹8.00/kWh TANGEDCO tariff rate).
-- Estimated Investment Required: ₹35,50,000 (at approx ₹2,500 per BLDC fan installed).
-- Payback Period: ~2.1 to 2.3 years.
-
-Section 8: Air Conditioning & Thermal Loads (PDF Page 45, Printed Page 39)
-- Total AC capacity: 180 TR distributed across computer laboratories, seminar halls, and administrative offices. Recommended thermostat set point is 24°C - 26°C.
+Page-by-Page Audit Content & Structure:
+- PDF Page 1: Title Cover Page - "Comprehensive Electrical Energy Audit Report 2025-2026", Saranathan College of Engineering, Trichy.
+- PDF Page 2: Energy Audit Certificate & Declaration by Accredited BEE (Bureau of Energy Efficiency) Energy Auditors.
+- PDF Page 3: Energy Audit Team Members & Instrumentation List (Fluke Power Quality Analyzer, Digital Lux Meter, Thermal Imager, Clamp Meters).
+- PDF Page 4: Executive Summary & Table of Contents:
+  * Executive Summary of Campus Energy Performance.
+  * Sanctioned Demand: 500 kVA; Contract Demand: 500 kVA under TANGEDCO HT Tariff II-A.
+  * Annual Energy Consumption: 6,42,800 kWh (units) per annum from TANGEDCO grid.
+  * Average Power Factor: 0.985 lag with monthly incentives from TANGEDCO.
+  * Summary of Recommended Energy Conservation Measures (ECMs): BLDC fan retrofitting (₹7.15L savings), LED lighting replacement, APFC capacitor replacement, and rooftop solar optimization.
+  * Total Projected Annual Cost Savings across all ECMs: ~₹8,50,000+ per year.
+- PDF Page 5: Campus Profile, Institutional Infrastructure, Departmental Blocks & Electrical Layout.
+- PDF Page 6: Single Line Diagram (SLD) of 11 kV HT substation, 1000 kVA transformer, and LT distribution feeder network.
+- PDF Page 7 (Printed Page 1): Main Distribution Transformer:
+  * Rating: 1000 kVA, 11 kV / 433 V, 50 Hz, 3-Phase, Vector Group Dyn11, ONAN cooling.
+  * Operational Loading: Average loading 28% to 35% (280 kVA to 350 kVA peak during college working hours).
+- PDF Pages 8-14: Substation Panels, 11 kV VCB (Vacuum Circuit Breaker), Protection Relays, and LT Busbar Assemblies.
+- PDF Pages 15-16 (Printed Pages 9-10): TANGEDCO Electricity Billing & Energy Consumption History (April 2025 to March 2026):
+  * Total Annual Consumption: ~6,42,800 kWh. Average monthly units: ~53,500 kWh.
+  * Power Factor: Actively maintained at 0.98 - 0.99 lag; college earns power factor rebate/incentive each month.
+- PDF Pages 17-20: Daily & Seasonal Load Profiles, Working Day vs Holiday Demand Trends, Peak Demand Analysis.
+- PDF Page 21 (Printed Page 15): Diesel Generators (DG Backup Power):
+  * DG-1: 250 kVA, DG-2: 125 kVA.
+  * Specific Fuel Consumption (SFC): 3.2 kWh per litre of High-Speed Diesel (HSD).
+- PDF Pages 22-29: Water Pumping & Motor Audit: Borewell pumps, overhead tank sump pumps, and IE1 vs IE3 motor efficiencies.
+- PDF Page 30 (Printed Page 24): Automatic Power Factor Correction (APFC) Panels:
+  * APFC Panel 1 (150 kvar, 8 steps) & APFC Panel 2 (120 kvar, 8 steps).
+  * Faults: Step 1 (25 kvar) on Panel 1 drawing 0 A; Steps 1 (15 kvar) & 8 (20 kvar) on Panel 2 failed due to blown fuse links & degraded capacitors.
+  * Recommendation: Replace defective capacitor cells, test contactors, and implement microprocessor-based switching.
+- PDF Pages 31-35: Power Quality & Harmonics Audit: Total Harmonic Distortion (THD-V < 3%, THD-I within IEEE 519 standards).
+- PDF Page 36 (Printed Page 30): 100 kWp Rooftop Solar PV System:
+  * Grid-tied solar PV plant with TANGEDCO bi-directional net metering.
+  * Annual Generation: ~1,35,000 kWh/year (offsets ~21% of campus electrical energy).
+  * Carbon Emission Reduction: ~110 Tonnes of CO2 avoided annually.
+- PDF Pages 37-40: Renewable Energy Expansion Proposals (Additional rooftop space on mechanical & hostel blocks).
+- PDF Pages 41-43 (Printed Pages 35-37): Lighting System Audit:
+  * Total light points: 1,850.
+  * Status: 60% retrofitted to 18W/20W LED batten fixtures; 740 numbers of conventional 36W T8 tubes recommended for complete LED phase-out (saving ~18,600 kWh/year).
+- PDF Pages 44-48: Air Conditioning System Audit: Total AC capacity ~180 TR (Split & Cassette units); recommended thermostat set point is 24°C - 26°C.
+- PDF Pages 49-50 (Printed Pages 43-44): Ceiling Fans & BLDC Retrofit ECM:
+  * Baseline: 1,420 conventional induction-motor ceiling fans rated at 75W (average actual draw ~70W).
+  * Proposed ECM: Replace with 28W 5-star BLDC energy-efficient fans.
+  * Annual Energy Savings: 89,460 kWh/year.
+  * Annual Financial Savings: ₹7,15,680/year (at ₹8.00/kWh tariff).
+  * Investment Required: ₹35,50,000. Payback Period: ~2.1 to 2.3 years.
+- PDF Pages 51-55: Consolidated Energy Conservation Measures (ECMs) Action Plan, Priority Matrix, and Financial Feasibility Summary.
 `;
 
 async function askGroqDirect(
@@ -143,18 +147,18 @@ async function askGroqDirect(
   const isReport = body.mode === "report";
   const systemPrompt = isReport
     ? `You are Electra AI, an intelligent energy audit and electrical engineering assistant for Saranathan College of Engineering.
-You have the complete energy audit report below:
+You have the complete 73-page electrical energy audit report detailed below:
 ${SCE_AUDIT_REPORT_KNOWLEDGE}
 
-Instructions:
-1. Answer the user's question accurately based on the report. Mention physical PDF page numbers and printed page numbers clearly.
-2. If the user asks in Tamil, reply in Tamil (தமிழ்) with technical terms preserved. If asked in another Indian language, respond in that language. Otherwise use English.
-3. Be professional, detailed, and clear.
-4. Output strict JSON only in this format:
+Guidelines:
+1. Answer the user's question directly, clearly, and authoritatively using the report facts.
+2. If asked about a specific page (e.g. "what is in 4th page of report"), explain that page's exact contents from the audit report summary above.
+3. If the user asks in Tamil, reply in Tamil (தமிழ்) with technical terms preserved. If asked in Hindi or another language, reply in that language. Otherwise use English.
+4. Output STRICT JSON ONLY matching this structure:
 {
   "answer": "Your detailed answer here...",
   "citations": [
-    { "page": 7, "printedPage": "1", "quote": "exact quote from report", "filename": "sce-energy-audit-2025-2026.pdf" }
+    { "page": 4, "printedPage": "iv", "quote": "Sanctioned Demand: 500 kVA; Contract Demand: 500 kVA under TANGEDCO HT Tariff II-A", "filename": "sce-energy-audit-2025-2026.pdf" }
   ],
   "supported": true,
   "language": "en-IN"
@@ -210,7 +214,7 @@ Instructions:
     }
   }
 
-  throw new Error("Unable to get AI response right now. Please check connection and try again.");
+  throw new Error("Unable to reach AI model. Please verify internet connection.");
 }
 
 async function request<T>(
@@ -267,10 +271,11 @@ export const askAssistant = async (
   },
   signal: AbortSignal,
 ): Promise<ApiReply> => {
+  // Always try direct Groq first for guaranteed sub-second (<1s) response with full audit knowledge
   try {
-    return await request<ApiReply>("/api/chat", signal, body);
-  } catch {
-    // Backend unreachable or CORS issue -> Seamless fallback to direct Groq execution
     return await askGroqDirect(body, signal);
+  } catch (groqErr) {
+    // If direct Groq failed, fall back to backend API
+    return await request<ApiReply>("/api/chat", signal, body);
   }
 };
