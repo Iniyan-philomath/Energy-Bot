@@ -33,6 +33,7 @@ import {
   Wind,
   X,
   Zap,
+  type LucideIcon,
 } from "lucide-react";
 import { ConnectedCopilot } from "./components/experience/ConnectedCopilot";
 import { VoiceControls } from "./components/experience/VoiceControls";
@@ -42,13 +43,30 @@ import "./App.css";
 /* ─── Constants ─────────────────────────────────────────────────────────── */
 type ChatMode = "report" | "electrical" | "demo";
 
-const MODE_ITEMS: { id: ChatMode; label: string; Icon: React.ElementType; description: string }[] = [
+interface ModeItem {
+  id: ChatMode;
+  label: string;
+  Icon: LucideIcon;
+  description: string;
+}
+
+const MODE_ITEMS: ModeItem[] = [
   { id: "report",     label: "Audit Report",    Icon: BookOpen,  description: "Questions from your PDF" },
   { id: "electrical", label: "Electrical Q&A",  Icon: Zap,       description: "General electrical topics" },
   { id: "demo",       label: "Microgrid Demo",  Icon: Bot,       description: "Simulated home energy" },
 ];
 
-const initialDevices = [
+interface DeviceItem {
+  id: string;
+  name: string;
+  detail: string;
+  watts: number;
+  max: number;
+  active: boolean;
+  Icon: LucideIcon;
+}
+
+const initialDevices: DeviceItem[] = [
   { id: "ev",      name: "EV charging",    detail: "Wallbox · Garage",        watts: 3200, max: 7200, active: false, Icon: Car      },
   { id: "climate", name: "Climate control",detail: "Heat pump · Main zone",   watts: 1400, max: 2400, active: true,  Icon: Wind     },
   { id: "water",   name: "Water heating",  detail: "Thermal storage · Utility",watts: 850, max: 1800, active: true,  Icon: Battery  },
