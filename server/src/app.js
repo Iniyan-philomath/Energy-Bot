@@ -10,15 +10,26 @@ export function createApp({ answer, reports, config, limit = 12 }) {
     res.set("X-Content-Type-Options", "nosniff");
     res.set("Cache-Control", "no-store");
     const origin = req.get("Origin");
-    if (origin && !config.origins.includes(origin))
-      return res.status(403).json({ error: "ORIGIN_NOT_ALLOWED" });
-    if (origin) {
+    const isAllowed =
+      !origin ||
+      config.origins.includes(origin) ||
+      origin.endsWith(".onrender.com") ||
+      origin.includes("localhost") ||
+      origin.includes("127.0.0.1");
+
+    if (origin && isAllowed) {
       res.set("Access-Control-Allow-Origin", origin);
       res.vary("Origin");
     }
     res.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-    res.set("Access-Control-Allow-Headers", "Content-Type");
-    if (req.method === "OPTIONS") return res.sendStatus(204);
+    res.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
+    if (req.method === "OPTIONS") {
+      if (!isAllowed) return res.status(403).json({ error: "ORIGIN_NOT_ALLOWED" });
+      return res.sendStatus(204);
+    }
+    if (origin && !isAllowed) {
+      return res.status(403).json({ error: "ORIGIN_NOT_ALLOWED" });
+    }
     next();
   });
   app.get("/health", (_req, res) =>
