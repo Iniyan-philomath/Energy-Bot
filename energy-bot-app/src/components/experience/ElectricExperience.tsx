@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { Volume2, VolumeX, Zap } from "lucide-react";
 import {
@@ -263,63 +263,16 @@ export function PowerIntro({ onFinish }: { onFinish: () => void }) {
   const reduced = useReducedMotion();
   const [strobe, setStrobe] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
+  const soundEnabledRef = useRef(true);
   const [voltage, setVoltage] = useState(0);
   const [stage, setStage] = useState<"standby" | "striking" | "ignited">("standby");
+  const finishCalledRef = useRef(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  const startLightningSequence = useCallback(() => {
-    setStage("striking");
-
-    // Force play sound immediately (user gesture or auto)
-    try {
-      playReactorPowerUpSound();
-    } catch {
-      /* ok */
-    }
-
-    // Voltage ramp up to 1250 kV across 3 seconds
-    let curV = 0;
-    const voltInterval = setInterval(() => {
-      curV += Math.floor(Math.random() * 55 + 32);
-      if (curV >= 1250) {
-        curV = 1250;
-        clearInterval(voltInterval);
-      }
-      setVoltage(curV);
-    }, 60);
-
-    // Initial Thunder Strike at 600ms
-    setTimeout(() => {
-      setStrobe(true);
-      try {
-        if (soundEnabled) playLightningThunderSound();
-      } catch {
-        /* ok */
-      }
-      setTimeout(() => setStrobe(false), 240);
-    }, 600);
-
-    // Second Powerful Thunder Strike at 1500ms
-    setTimeout(() => {
-      setStrobe(true);
-      try {
-        if (soundEnabled) playLightningThunderSound();
-      } catch {
-        /* ok */
-      }
-      setTimeout(() => setStrobe(false), 280);
-    }, 1500);
-
-    // Fully ignited state at 2300ms
-    setTimeout(() => {
-      setStage("ignited");
-    }, 2300);
-
-    // Hold for full 3.4 seconds before revealing the active chat workspace
-    setTimeout(() => {
-      clearInterval(voltInterval);
-      onFinish();
-    }, 3400);
-  }, [soundEnabled, onFinish]);
+  // Keep ref in sync so timeouts capture latest value
+  useEffect(() => {
+    soundEnabledRef.current = soundEnabled;
+  }, [soundEnabled]);
 
   useEffect(() => {
     if (reduced) {
@@ -327,9 +280,84 @@ export function PowerIntro({ onFinish }: { onFinish: () => void }) {
       return;
     }
 
-    // Auto-trigger sequence on load
-    startLightningSequence();
-  }, [reduced, startLightningSequence, onFinish]);
+    // Create the audio element pointing to the real file
+    const audio = new Audio("/electric_shock.mp3");
+    audio.volume = 0.85;
+    audioRef.current = audio;
+
+    // Start the full sequence
+    setStage("striking");
+
+    // Play the electric_shock sound immediately
+    const tryPlay = () => {
+      if (soundEnabledRef.current) {
+        audio.currentTime = 0;
+        audio.play().catch(() => {/* autoplay blocked, will retry on click */});
+      }
+    };
+    tryPlay();
+
+    // Also fire the Web Audio reactor power-up
+    try { playReactorPowerUpSound(); } catch { /* ok */ }
+
+    // Voltage ramp: 0 → 1250 kV in ~3 seconds
+    let curV = 0;
+    const voltInterval = setInterval(() => {
+      curV += Math.floor(Math.random() * 52 + 28);
+      if (curV >= 1250) { curV = 1250; clearInterval(voltInterval); }
+      setVoltage(curV);
+    }, 60);
+
+    // Strobe flash #1 at 600ms
+    const t1 = setTimeout(() => {
+      setStrobe(true);
+      try { if (soundEnabledRef.current) playLightningThunderSound(); } catch { /* ok */ }
+      setTimeout(() => setStrobe(false), 260);
+    }, 600);
+
+    // Replay sound + strobe flash #2 at 1500ms
+    const t2 = setTimeout(() => {
+      setStrobe(true);
+      if (soundEnabledRef.current) {
+        audio.currentTime = 0;
+        audio.play().catch(() => {});
+      }
+      try { if (soundEnabledRef.current) playLightningThunderSound(); } catch { /* ok */ }
+      setTimeout(() => setStrobe(false), 300);
+    }, 1500);
+
+    // Strobe flash #3 at 2400ms
+    const t3 = setTimeout(() => {
+      setStrobe(true);
+      setTimeout(() => setStrobe(false), 200);
+    }, 2400);
+
+    // Transition to "ignited" state at 2600ms
+    const t4 = setTimeout(() => {
+      setStage("ignited");
+    }, 2600);
+
+    // HARD EXIT at exactly 3500ms — guaranteed, no dependency issues
+    const t5 = setTimeout(() => {
+      clearInterval(voltInterval);
+      setVoltage(1250);
+      if (!finishCalledRef.current) {
+        finishCalledRef.current = true;
+        onFinish();
+      }
+    }, 3500);
+
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+      clearTimeout(t4);
+      clearTimeout(t5);
+      clearInterval(voltInterval);
+      audio.pause();
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // ← Empty deps: run once on mount, no re-runs
 
   return (
     <motion.div
@@ -348,8 +376,8 @@ export function PowerIntro({ onFinish }: { onFinish: () => void }) {
         overflow: "hidden",
       }}
     >
-      {/* 3-Second Branching Lightning Canvas */}
-      <LightningStormCanvas active={stage === "striking"} />
+      {/* 3-Second Branching Lightning Canvas — stays active until ignited */}
+      <LightningStormCanvas active={stage === "striking" || stage === "ignited"} />
 
       {/* Screen flash strobe */}
       <div
@@ -376,14 +404,15 @@ export function PowerIntro({ onFinish }: { onFinish: () => void }) {
       >
         <button
           onClick={() => {
-            setSoundEnabled((s) => !s);
-            if (!soundEnabled) {
-              try {
-                playReactorPowerUpSound();
-                playLightningThunderSound();
-              } catch {
-                /* ok */
-              }
+            const next = !soundEnabled;
+            setSoundEnabled(next);
+            soundEnabledRef.current = next;
+            if (next && audioRef.current) {
+              // User just turned sound ON — play audio immediately
+              audioRef.current.currentTime = 0;
+              audioRef.current.play().catch(() => {});
+            } else if (!next && audioRef.current) {
+              audioRef.current.pause();
             }
           }}
           style={{
