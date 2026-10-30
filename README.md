@@ -1,4 +1,4 @@
-# ⚡ Electra AI: Electrical Intelligence & Energy Audit Assistant
+# ⚡ Energy Bot: Electrical Intelligence & Energy Audit Assistant
 
 > An intelligent, real-time microgrid management dashboard and autonomous voice/chat AI copilot that optimizes residential and commercial energy flows (Bifacial Solar generation, Battery Energy Storage Systems (BESS), smart sub-circuit appliance loads, and dynamic Time-of-Use / spot electricity tariffs).
 
@@ -6,7 +6,7 @@
 
 ## 🌟 Key Features
 
-1. **Electra AI Autonomous AI Copilot (`EnergyBotChat`)**
+1. **Energy Bot Autonomous AI Copilot (`EnergyBotChat`)**
    - Natural language energy advice engine.
    - Built-in Web Speech API voice recognition (STT) and dynamic speech synthesis (TTS).
    - Dynamic intent resolution for solar diversion, dynamic tariffs, EV charge windows, and microgrid islanding.

@@ -36,7 +36,7 @@ export const Hero: React.FC<HeroProps> = ({ telemetry, onExploreBot, onOptimizeG
           </h1>
 
           <p className="text-lg sm:text-xl text-neutral-400 max-w-xl mx-auto lg:mx-0 font-normal leading-relaxed">
-            Electra AI transforms residential solar, battery storage, and dynamic tariffs into a self-balancing clean energy engine with predictive agentic intelligence.
+            Energy Bot transforms residential solar, battery storage, and dynamic tariffs into a self-balancing clean energy engine with predictive agentic intelligence.
           </p>
 
           {/* Interactive CTAs */}

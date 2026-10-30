@@ -1,4 +1,4 @@
-# Host Electra AI on Render and store audit PDFs in Supabase
+# Host Energy Bot on Render and store audit PDFs in Supabase
 
 The app has a React/Vite frontend plus a separate Node report API in `server/`. The dashboard remains a simulation. The API reads one configured private Supabase PDF and uses Groq for multilingual report answers and general electrical questions. Deploying the static site alone does not enable these API modes. Follow [REPORT_CHAT.md](REPORT_CHAT.md) to connect the existing live site. There is no client login or arbitrary PDF-upload interface yet.
 
@@ -11,7 +11,7 @@ The app has a React/Vite frontend plus a separate Node report API in `server/`. 
 
    | Setting | Value |
    | --- | --- |
-   | Name | `electra-ai` or another available name |
+   | Name | `energy-bot` or another available name |
    | Root Directory | `energy-bot-app` |
    | Build Command | `npm ci --no-audit --no-fund && npm run build` |
    | Publish Directory | `dist` |
@@ -28,7 +28,7 @@ Verify the deployed site: skip or play the intro; switch Today/Week/Month; toggl
 ## 2. Create a separate Supabase project
 
 1. Sign in at https://supabase.com/dashboard and choose **New project**.
-2. Select your organization, name the project `electra-ai`, and choose a region near your users (Mumbai if offered for your organization).
+2. Select your organization, name the project `energy-bot`, and choose a region near your users (Mumbai if offered for your organization).
 3. Generate a strong database password and save it in your password manager. Do not place it in source control or chat. Select a plan appropriate for your usage after checking the dashboard's current limits and pricing.
 4. Wait for provisioning, then open **SQL Editor → New query**.
 5. Paste and run `supabase/migrations/202610140001_energy_audit_storage.sql` from this repository.

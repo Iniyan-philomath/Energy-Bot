@@ -1,5 +1,5 @@
 /**
- * App.tsx — Electra AI Chat Workspace
+ * App.tsx — Energy Bot Chat Workspace
  *
  * Full redesign: chat-first, colorful, premium.
  * Removes: thunder intro, coil, hero section, landing-page structure.
@@ -90,8 +90,8 @@ type DemoMessage = {
   done?: boolean;
 };
 
-/* ─── Electra Mark ──────────────────────────────────────────────────────── */
-function ElectraMark({ size = 28 }: { size?: number }) {
+/* ─── Energy Bot Mark ───────────────────────────────────────────────────── */
+function EnergyBotMark({ size = 28 }: { size?: number }) {
   return (
     <div style={{
       width: size, height: size,
@@ -110,7 +110,7 @@ function ElectraMark({ size = 28 }: { size?: number }) {
 export default function App() {
   // Theme
   const [theme, setTheme] = useState<"light" | "dark">(() => {
-    try { return (localStorage.getItem("electra-theme") as "light" | "dark") || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"); }
+    try { return (localStorage.getItem("energy-bot-theme") as "light" | "dark") || (localStorage.getItem("electra-theme") as "light" | "dark") || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"); }
     catch { return "dark"; }
   });
 
@@ -148,7 +148,7 @@ export default function App() {
   // Apply theme to <html>
   useEffect(() => {
     document.documentElement.classList.toggle("dark", theme === "dark");
-    try { localStorage.setItem("electra-theme", theme); } catch { /* ok */ }
+    try { localStorage.setItem("energy-bot-theme", theme); } catch { /* ok */ }
   }, [theme]);
 
   const toggleTheme = () => setTheme(t => t === "dark" ? "light" : "dark");
@@ -311,7 +311,7 @@ export default function App() {
       >
         {demoMessages.map(m => (
           <div key={m.id} style={{ display: "flex", justifyContent: m.role === "user" ? "flex-end" : "flex-start", gap: 8 }}>
-            {m.role === "assistant" && <ElectraMark size={30} />}
+            {m.role === "assistant" && <EnergyBotMark size={30} />}
             <div style={{
               maxWidth: "72%", padding: "12px 16px", borderRadius: "var(--radius-lg)",
               background: m.role === "user" ? "var(--user-bubble-bg)" : "var(--bg-surface)",
@@ -341,7 +341,7 @@ export default function App() {
         ))}
         {demoThinking && (
           <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
-            <ElectraMark size={30} />
+            <EnergyBotMark size={30} />
             <div className="thinking-bubble">
               <div className="thinking-dots">
                 <span className="thinking-dot" /><span className="thinking-dot" /><span className="thinking-dot" />
@@ -429,7 +429,7 @@ export default function App() {
               <Zap size={18} fill="white" color="white" />
             </div>
             <div className="brand-text">
-              <span className="brand-name">Electra AI</span>
+              <span className="brand-name">Energy Bot</span>
               <span className="brand-subtitle">Energy Intelligence</span>
             </div>
           </div>
@@ -494,8 +494,8 @@ export default function App() {
           {/* Title */}
           <div className="header-title-area">
             <div className="header-title">
-              <ElectraMark size={22} />
-              Electra AI
+              <EnergyBotMark size={22} />
+              Energy Bot
             </div>
             <div className="header-subtitle">
               <span className="header-report-chip">

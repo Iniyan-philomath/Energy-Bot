@@ -9,7 +9,7 @@ export default defineConfig({
     react(),
     tailwindcss(),
     {
-      name: "electra-deployment-version",
+      name: "energy-bot-deployment-version",
       generateBundle() {
         let commit = process.env.RENDER_GIT_COMMIT || "unknown"
         if (commit === "unknown") {
@@ -26,7 +26,7 @@ export default defineConfig({
           type: "asset",
           fileName: "deployment.json",
           source: JSON.stringify({
-            application: "Electra — The Power Observatory",
+            application: "Energy Bot — The Power Observatory",
             sourceDirectory: "energy-bot-app",
             commit,
           }, null, 2),

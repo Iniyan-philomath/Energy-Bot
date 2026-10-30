@@ -10,14 +10,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       name="description"
-      content="Electra AI — A vibrant energy-intelligence conversation studio. Ask questions about your energy audit, understand findings, and explore improvements."
+      content="Energy Bot — A vibrant energy-intelligence conversation studio. Ask questions about your energy audit, understand findings, and explore improvements."
     />
-    <title>Electra AI — Energy Audit Assistant</title>
+    <title>Energy Bot — Energy Audit Assistant</title>
     <!-- Prevent flash of wrong theme -->
     <script>
       (function() {
         try {
-          var stored = localStorage.getItem('electra-theme');
+          var stored = localStorage.getItem('energy-bot-theme') || localStorage.getItem('electra-theme');
           var theme = stored || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
           document.documentElement.classList.toggle('dark', theme === 'dark');
         } catch(e) {

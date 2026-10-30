@@ -1,4 +1,4 @@
-# Electra — The Power Observatory
+# Energy Bot — The Power Observatory
 
 The main application is `energy-bot-app`. Run `npm ci`, then `npm run dev` here. `npm run build` runs TypeScript and the production bundle; `npm run lint` runs Oxlint.
 

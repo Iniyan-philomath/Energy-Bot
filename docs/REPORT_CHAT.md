@@ -1,4 +1,4 @@
-# Connect Electra AI to the uploaded audit
+# Connect Energy Bot to the uploaded audit
 
 ## What is implemented
 
@@ -26,7 +26,7 @@ In Render choose **New → Web Service**, connect `Iniyan-philomath/Energy-Bot`,
 | Setting | Value |
 | --- | --- |
 | Branch | `deploy/volt-iq-render` |
-| Name | `electra-ai-api` or an available variant |
+| Name | `energy-bot-api` or an available variant |
 | Runtime | Node |
 | Root Directory | `server` |
 | Build Command | `npm ci --no-audit --no-fund` |

@@ -46,7 +46,7 @@ export const languageOptions = [
   ["brx-IN", "Bodo"],
 ] as const;
 const base = String(
-  import.meta.env.VITE_API_BASE_URL || "https://electra-ai-api.onrender.com",
+  import.meta.env.VITE_API_BASE_URL || "https://energy-bot-api.onrender.com",
 ).replace(/\/+$/, "");
 export const apiConfigured = true;
 const errors: Record<string, string> = {
@@ -82,58 +82,95 @@ const getGroqKey = () => {
   return `${a}${b}${c}`;
 };
 
-const SCE_AUDIT_REPORT_KNOWLEDGE = `
-DOCUMENT: Saranathan College of Engineering (SCE) Comprehensive Electrical Energy Audit Report 2025-2026.
-Location: Venkateswara Nagar, Panjappur, Tiruchirappalli - 620012, Tamil Nadu.
-Tariff: TANGEDCO HT Tariff II-A, Sanctioned Demand: 500 kVA, Total Connected Load: ~1,250 kW.
+import rawDefaultReportPages from "./reportPages.json";
 
-Page-by-Page Audit Content & Structure:
-- PDF Page 1: Title Cover Page - "Comprehensive Electrical Energy Audit Report 2025-2026", Saranathan College of Engineering, Trichy.
-- PDF Page 2: Energy Audit Certificate & Declaration by Accredited BEE (Bureau of Energy Efficiency) Energy Auditors.
-- PDF Page 3: Energy Audit Team Members & Instrumentation List (Fluke Power Quality Analyzer, Digital Lux Meter, Thermal Imager, Clamp Meters).
-- PDF Page 4: Executive Summary & Table of Contents:
-  * Executive Summary of Campus Energy Performance.
-  * Sanctioned Demand: 500 kVA; Contract Demand: 500 kVA under TANGEDCO HT Tariff II-A.
-  * Annual Energy Consumption: 6,42,800 kWh (units) per annum from TANGEDCO grid.
-  * Average Power Factor: 0.985 lag with monthly incentives from TANGEDCO.
-  * Summary of Recommended Energy Conservation Measures (ECMs): BLDC fan retrofitting (₹7.15L savings), LED lighting replacement, APFC capacitor replacement, and rooftop solar optimization.
-  * Total Projected Annual Cost Savings across all ECMs: ~₹8,50,000+ per year.
-- PDF Page 5: Campus Profile, Institutional Infrastructure, Departmental Blocks & Electrical Layout.
-- PDF Page 6: Single Line Diagram (SLD) of 11 kV HT substation, 1000 kVA transformer, and LT distribution feeder network.
-- PDF Page 7 (Printed Page 1): Main Distribution Transformer:
-  * Rating: 1000 kVA, 11 kV / 433 V, 50 Hz, 3-Phase, Vector Group Dyn11, ONAN cooling.
-  * Operational Loading: Average loading 28% to 35% (280 kVA to 350 kVA peak during college working hours).
-- PDF Pages 8-14: Substation Panels, 11 kV VCB (Vacuum Circuit Breaker), Protection Relays, and LT Busbar Assemblies.
-- PDF Pages 15-16 (Printed Pages 9-10): TANGEDCO Electricity Billing & Energy Consumption History (April 2025 to March 2026):
-  * Total Annual Consumption: ~6,42,800 kWh. Average monthly units: ~53,500 kWh.
-  * Power Factor: Actively maintained at 0.98 - 0.99 lag; college earns power factor rebate/incentive each month.
-- PDF Pages 17-20: Daily & Seasonal Load Profiles, Working Day vs Holiday Demand Trends, Peak Demand Analysis.
-- PDF Page 21 (Printed Page 15): Diesel Generators (DG Backup Power):
-  * DG-1: 250 kVA, DG-2: 125 kVA.
-  * Specific Fuel Consumption (SFC): 3.2 kWh per litre of High-Speed Diesel (HSD).
-- PDF Pages 22-29: Water Pumping & Motor Audit: Borewell pumps, overhead tank sump pumps, and IE1 vs IE3 motor efficiencies.
-- PDF Page 30 (Printed Page 24): Automatic Power Factor Correction (APFC) Panels:
-  * APFC Panel 1 (150 kvar, 8 steps) & APFC Panel 2 (120 kvar, 8 steps).
-  * Faults: Step 1 (25 kvar) on Panel 1 drawing 0 A; Steps 1 (15 kvar) & 8 (20 kvar) on Panel 2 failed due to blown fuse links & degraded capacitors.
-  * Recommendation: Replace defective capacitor cells, test contactors, and implement microprocessor-based switching.
-- PDF Pages 31-35: Power Quality & Harmonics Audit: Total Harmonic Distortion (THD-V < 3%, THD-I within IEEE 519 standards).
-- PDF Page 36 (Printed Page 30): 100 kWp Rooftop Solar PV System:
-  * Grid-tied solar PV plant with TANGEDCO bi-directional net metering.
-  * Annual Generation: ~1,35,000 kWh/year (offsets ~21% of campus electrical energy).
-  * Carbon Emission Reduction: ~110 Tonnes of CO2 avoided annually.
-- PDF Pages 37-40: Renewable Energy Expansion Proposals (Additional rooftop space on mechanical & hostel blocks).
-- PDF Pages 41-43 (Printed Pages 35-37): Lighting System Audit:
-  * Total light points: 1,850.
-  * Status: 60% retrofitted to 18W/20W LED batten fixtures; 740 numbers of conventional 36W T8 tubes recommended for complete LED phase-out (saving ~18,600 kWh/year).
-- PDF Pages 44-48: Air Conditioning System Audit: Total AC capacity ~180 TR (Split & Cassette units); recommended thermostat set point is 24°C - 26°C.
-- PDF Pages 49-50 (Printed Pages 43-44): Ceiling Fans & BLDC Retrofit ECM:
-  * Baseline: 1,420 conventional induction-motor ceiling fans rated at 75W (average actual draw ~70W).
-  * Proposed ECM: Replace with 28W 5-star BLDC energy-efficient fans.
-  * Annual Energy Savings: 89,460 kWh/year.
-  * Annual Financial Savings: ₹7,15,680/year (at ₹8.00/kWh tariff).
-  * Investment Required: ₹35,50,000. Payback Period: ~2.1 to 2.3 years.
-- PDF Pages 51-55: Consolidated Energy Conservation Measures (ECMs) Action Plan, Priority Matrix, and Financial Feasibility Summary.
-`;
+export type ReportPageItem = {
+  page: number;
+  printedPage: string | null;
+  text: string;
+};
+
+const defaultReportPages: ReportPageItem[] = rawDefaultReportPages as ReportPageItem[];
+let activeReportPages: ReportPageItem[] = defaultReportPages;
+let activeReportFilename: string = "sce-energy-audit-2025-2026.pdf";
+
+export function setCustomReport(pages: ReportPageItem[], filename: string) {
+  activeReportPages = pages;
+  activeReportFilename = filename;
+}
+
+export function getActiveFilename(): string {
+  return activeReportFilename;
+}
+
+export function getActivePagesCount(): number {
+  return activeReportPages.length;
+}
+
+export function searchReport(query: string): ReportPageItem[] {
+  const pages = activeReportPages;
+  const q = query.toLowerCase();
+
+  // 1. Check for page range: e.g. "51 to 62", "51-62", "pages 51 to 62"
+  const rangeMatch = q.match(/(\d+)\s*(?:to|-)\s*(\d+)/i);
+  if (rangeMatch) {
+    const start = parseInt(rangeMatch[1], 10);
+    const end = parseInt(rangeMatch[2], 10);
+    const minP = Math.min(start, end);
+    const maxP = Math.max(start, end);
+
+    // Match both physical PDF page AND printed page number (covers offsets)
+    const matched = pages.filter((p) => {
+      const printed = parseInt(p.printedPage || "0", 10);
+      return (p.page >= minP && p.page <= maxP) || (printed >= minP && printed <= maxP);
+    });
+
+    if (matched.length > 0) {
+      // Return up to 14 pages if a range is requested
+      return matched.slice(0, 14);
+    }
+  }
+
+  // 2. Check for single page: e.g. "page 4", "4th page", "page 59"
+  const singleMatch = q.match(/(?:page|p\.?)\s*(\d+)|(\d+)(?:st|nd|rd|th)\s*page/i);
+  if (singleMatch) {
+    const pageNum = parseInt(singleMatch[1] || singleMatch[2], 10);
+    const matched = pages.filter(
+      (p) => p.page === pageNum || parseInt(p.printedPage || "0", 10) === pageNum,
+    );
+    if (matched.length > 0) return matched;
+  }
+
+  // 3. Keyword / Semantic Search
+  const stopWords = new Set(["what", "is", "the", "in", "of", "and", "for", "from", "are", "tell", "show", "give", "report", "data", "datas", "table", "format"]);
+  const terms = q
+    .replace(/[^\w\s]/g, " ")
+    .split(/\s+/)
+    .filter((t) => t.length > 2 && !stopWords.has(t));
+
+  if (!terms.length) {
+    // Default executive summary pages
+    return pages.slice(0, 6);
+  }
+
+  const scored = pages
+    .map((p) => {
+      let score = 0;
+      const t = p.text.toLowerCase();
+      for (const term of terms) {
+        if (t.includes(term)) {
+          const occurrences = (t.match(new RegExp(term, "g")) || []).length;
+          score += occurrences * (term.length > 4 ? 2 : 1);
+        }
+      }
+      return { page: p, score };
+    })
+    .filter((x) => x.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .map((x) => x.page);
+
+  return scored.slice(0, 8);
+}
 
 async function askGroqDirect(
   body: {
@@ -145,25 +182,37 @@ async function askGroqDirect(
   signal: AbortSignal,
 ): Promise<ApiReply> {
   const isReport = body.mode === "report";
-  const systemPrompt = isReport
-    ? `You are Electra AI, an intelligent energy audit and electrical engineering assistant for Saranathan College of Engineering.
-You have the complete 73-page electrical energy audit report detailed below:
-${SCE_AUDIT_REPORT_KNOWLEDGE}
+  const relevantPages = isReport ? searchReport(body.question) : [];
 
-Guidelines:
-1. Answer the user's question directly, clearly, and authoritatively using the report facts.
-2. If asked about a specific page (e.g. "what is in 4th page of report"), explain that page's exact contents from the audit report summary above.
-3. If the user asks in Tamil, reply in Tamil (தமிழ்) with technical terms preserved. If asked in Hindi or another language, reply in that language. Otherwise use English.
-4. Output STRICT JSON ONLY matching this structure:
+  const passagesText = isReport
+    ? relevantPages
+        .map(
+          (p) =>
+            `--- PDF PAGE ${p.page} (PRINTED PAGE ${p.printedPage || p.page}) ---\n${p.text}`,
+        )
+        .join("\n\n")
+    : "";
+
+  const systemPrompt = isReport
+    ? `You are Energy Bot, an expert electrical energy auditor analyzing the full energy audit report: "${activeReportFilename}" (${activeReportPages.length} pages total).
+
+You have been provided with the EXACT VERBATIM text and tables from the relevant pages of the report:
+${passagesText}
+
+Instructions:
+1. Provide accurate, thorough, line-by-line answers based on the report text and data above.
+2. If tables or equipment listings are requested (e.g. Connected Fan Load, Indoor Lighting Load, Air Conditioning Load, Transformer, APFC, DG sets), format them clearly into Markdown tables with headers (Location, Equipment/Lamp, Quantity, Watts/kW, Operating Hours, kWh).
+3. If the user asks in Tamil (தமிழ்), respond in Tamil with technical terms preserved. If asked in another language, respond in that language. Otherwise use English.
+4. Output STRICT JSON ONLY matching this format:
 {
-  "answer": "Your detailed answer here...",
+  "answer": "Your comprehensive answer with markdown tables if requested...",
   "citations": [
-    { "page": 4, "printedPage": "iv", "quote": "Sanctioned Demand: 500 kVA; Contract Demand: 500 kVA under TANGEDCO HT Tariff II-A", "filename": "sce-energy-audit-2025-2026.pdf" }
+    { "page": ${relevantPages[0]?.page || 1}, "printedPage": "${relevantPages[0]?.printedPage || '1'}", "quote": "exact supporting snippet from text", "filename": "${activeReportFilename}" }
   ],
   "supported": true,
   "language": "en-IN"
-}`
-    : `You are Electra AI, an expert electrical engineering assistant. Answer general electrical engineering questions clearly, practically, and safely. Output strict JSON only in this format:
+} `
+    : `You are Energy Bot, an expert electrical engineering assistant. Answer general electrical engineering questions clearly, practically, and safely. Output strict JSON only in this format:
 {
   "answer": "Your detailed answer here...",
   "citations": [],
@@ -190,8 +239,8 @@ Guidelines:
         body: JSON.stringify({
           model,
           messages,
-          temperature: 0.2,
-          max_tokens: 1800,
+          temperature: 0.1,
+          max_tokens: 3500,
           response_format: { type: "json_object" },
         }),
       });
@@ -202,9 +251,22 @@ Guidelines:
       if (!content) continue;
 
       const parsed = JSON.parse(content);
+      const fallbackCitation = relevantPages[0]
+        ? [
+            {
+              page: relevantPages[0].page,
+              printedPage: relevantPages[0].printedPage,
+              quote: relevantPages[0].text.slice(0, 150).trim(),
+              filename: activeReportFilename,
+            },
+          ]
+        : [];
+
       return {
         answer: parsed.answer || content,
-        citations: Array.isArray(parsed.citations) ? parsed.citations : [],
+        citations: Array.isArray(parsed.citations) && parsed.citations.length > 0
+          ? parsed.citations
+          : fallbackCitation,
         supported: parsed.supported ?? true,
         language: parsed.language || body.language || "en-IN",
         mode: body.mode,

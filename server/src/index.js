@@ -13,7 +13,7 @@ const answer = createAssistant({
 });
 const app = createApp({ answer, reports, config });
 const server = app.listen(config.port, "0.0.0.0", () => {
-  console.log(`Electra AI API listening on port ${config.port}.`);
+  console.log(`Energy Bot API listening on port ${config.port}.`);
   console.log(
     `Supabase credential: ${config.supabaseKey ? "configured" : "missing"}; Groq credential: ${config.groqKey ? "configured" : "missing"}.`,
   );

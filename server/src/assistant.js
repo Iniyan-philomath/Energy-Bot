@@ -73,7 +73,7 @@ export function createAssistant({ complete, reports, filename }) {
       language === "auto"
         ? "Reply in the language of the latest question. Recognize transliterated Tamil/Hindi/etc. Use English if the language is ambiguous."
         : `Reply in ${languages[language]} (${language}), even if the question or report uses another language.`;
-    const prompt = `You are Electra AI, an electrical engineering assistant. ${languageInstruction}
+    const prompt = `You are Energy Bot, an electrical engineering assistant. ${languageInstruction}
 Keep answers clear and practical. Use plain text with short paragraphs or simple lists, not HTML. Never claim to control hardware.
 MODE: ${mode}.
 ${

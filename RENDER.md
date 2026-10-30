@@ -1,4 +1,4 @@
-# Deploy the Electra redesign
+# Deploy the Energy Bot redesign
 
 The production application is `energy-bot-app`, not `animated-website`.
 The repository root now contains a Render Blueprint, `render.yaml`.
@@ -23,7 +23,7 @@ Check that the deployed commit is the latest commit on GitHub `deploy/volt-iq-re
 the event finishes successfully. A failed build leaves the last successful
 version online.
 
-The updated page title is **Electra — The Power Observatory** and its main heading
+The updated page title is **Energy Bot — The Power Observatory** and its main heading
 is **Every watt. Understood.** The neon “POWER. WITH A HIGHER IQ.” page is not this
 application's current build.
 

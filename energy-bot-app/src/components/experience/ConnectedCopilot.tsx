@@ -139,8 +139,8 @@ function VoiceBtn({
   );
 }
 
-/* ─── Electra Mark (small SVG identity) ─────────────────────────────── */
-function ElectraMark({ size = 32 }: { size?: number }) {
+/* ─── Energy Bot Mark (small SVG identity) ─────────────────────────── */
+function EnergyBotMark({ size = 32 }: { size?: number }) {
   return (
     <div
       style={{
@@ -401,7 +401,7 @@ export function ConnectedCopilot({
                 </div>
 
                 <div className="welcome-content">
-                  {/* Electra animated mark */}
+                  {/* Energy Bot animated mark */}
                   <motion.div
                     className="electra-mark"
                     initial={reduced ? false : { scale: 0.6, opacity: 0 }}
@@ -419,7 +419,7 @@ export function ConnectedCopilot({
                   >
                     <h1 className="welcome-heading">
                       Hi, I'm{" "}
-                      <span className="accent-gradient">Electra</span>.
+                      <span className="accent-gradient">Energy Bot</span>.
                     </h1>
                     <p className="welcome-subheading">
                       {mode === "report"
@@ -523,7 +523,7 @@ export function ConnectedCopilot({
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.2 }}
                   >
-                    <ElectraMark size={32} />
+                    <EnergyBotMark size={32} />
                     <div className="thinking-bubble">
                       <div className="thinking-dots">
                         <span className="thinking-dot" />
@@ -573,7 +573,7 @@ export function ConnectedCopilot({
                   ref={inputRef}
                   className="composer-input"
                   aria-label={mode === "report" ? "Ask about your energy audit" : "Ask an electrical question"}
-                  placeholder={mode === "report" ? "Ask Electra about your energy audit…" : "Ask Electra an electrical question…"}
+                  placeholder={mode === "report" ? "Ask Energy Bot about your energy audit…" : "Ask Energy Bot an electrical question…"}
                   value={input}
                   rows={1}
                   maxLength={2000}
@@ -633,14 +633,14 @@ function MessageBubble({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.22, delay: isFirst ? 0 : Math.min(index * 0.04, 0.12) }}
     >
-      {msg.role === "assistant" && <ElectraMark size={32} />}
+      {msg.role === "assistant" && <EnergyBotMark size={32} />}
 
       <div className="message-bubble-wrap">
         {msg.role === "assistant" && !isFirst && (
-          <span className="message-sender">Electra AI</span>
+          <span className="message-sender">Energy Bot</span>
         )}
         {isFirst && (
-          <span className="message-sender">Electra AI</span>
+          <span className="message-sender">Energy Bot</span>
         )}
 
         <div className={`message-bubble${msg.error ? " error-bubble" : ""}`}>

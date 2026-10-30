@@ -394,7 +394,7 @@ export function PowerIntro({ onFinish }: { onFinish: () => void }) {
 
           <div style={{ textAlign: "center" }}>
             <div style={{ fontSize: 32, fontWeight: 900, letterSpacing: "0.1em", color: "#ffffff", textTransform: "uppercase" }}>
-              ELECTRA <span style={{ color: "#00f0ff" }}>AI</span>
+              ENERGY <span style={{ color: "#00f0ff" }}>BOT</span>
             </div>
             <div style={{ fontSize: 13, color: "rgba(255,255,255,0.45)", marginTop: 6, letterSpacing: "0.06em" }}>
               ENERGY INTELLIGENCE SYSTEM
@@ -479,7 +479,7 @@ export function PowerIntro({ onFinish }: { onFinish: () => void }) {
             <Reactor compact={false} />
             <div style={{ textAlign: "center" }}>
               <div style={{ fontSize: 28, fontWeight: 900, letterSpacing: "0.08em", color: "#ffffff", textTransform: "uppercase" }}>
-                ELECTRA <span style={{ color: "#00f0ff" }}>AI</span>
+                ENERGY <span style={{ color: "#00f0ff" }}>BOT</span>
               </div>
               <div style={{ fontSize: 14, fontWeight: 600, color: stage === "ignited" ? "#00f0ff" : "#00ff88", marginTop: 6, letterSpacing: "0.05em" }}>
                 {stage === "ignited"

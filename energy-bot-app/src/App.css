@@ -1,9 +1,10 @@
 /* ═══════════════════════════════════════════════════════════════════════
-   Electra AI — Chat Workspace Stylesheet
+   Energy Bot — Chat Workspace Stylesheet
    ═══════════════════════════════════════════════════════════════════════ */
 
 /* ── App Shell ─────────────────────────────────────────────────────────── */
-.electra-app {
+.electra-app,
+.energy-bot-app {
   display: flex;
   height: 100dvh;
   overflow: hidden;
@@ -410,8 +411,9 @@
   padding: 12px 0 16px;
 }
 
-/* Electra mark (3D animated identity) */
-.electra-mark {
+/* Energy Bot mark (3D animated identity) */
+.electra-mark,
+.energy-bot-mark {
   width: 68px;
   height: 68px;
   border-radius: 22px;
@@ -425,14 +427,14 @@
     0 4px 16px rgba(0, 240, 255, 0.35),
     inset 0 2px 2px rgba(255, 255, 255, 0.5),
     inset 0 -2px 4px rgba(0, 0, 0, 0.3);
-  animation: electra-float 4s ease-in-out infinite;
+  animation: energy-bot-float 4s ease-in-out infinite;
   position: relative;
   flex-shrink: 0;
   transform-style: preserve-3d;
   perspective: 800px;
 }
 
-@keyframes electra-float {
+@keyframes energy-bot-float {
   0%, 100% {
     transform: translateY(0) rotateX(0deg) rotateY(0deg);
   }
@@ -448,10 +450,12 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .electra-mark { animation: none; }
+  .electra-mark,
+  .energy-bot-mark { animation: none; }
 }
 
-.electra-mark-pulse {
+.electra-mark-pulse,
+.energy-bot-mark-pulse {
   position: absolute;
   inset: -8px;
   border-radius: 28px;

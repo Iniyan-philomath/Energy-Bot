@@ -1,4 +1,4 @@
--- Run in the SQL Editor of your NEW Electra AI Supabase project.
+-- Run in the SQL Editor of your NEW Energy Bot Supabase project.
 -- Dashboard uploads work immediately. App uploads require Supabase Auth.
 -- Authenticated object paths must be: <user UUID>/<unique filename>.pdf
 -- Never put a service-role or secret key in a browser application.

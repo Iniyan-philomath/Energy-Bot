@@ -42,11 +42,11 @@ export function useThunder(muted: boolean) {
 }
 export function useIntro(reduced: boolean, sceneReady: boolean, onStrike: () => void, onStop: () => void) {
   const [run, setRun] = useState(0);
-  const [phase, setPhase] = useState<IntroPhase>(() => { try { return reduced || sessionStorage.getItem('electra-intro') ? 'ready' : 'anticipation'; } catch { return reduced ? 'ready' : 'anticipation'; } });
+  const [phase, setPhase] = useState<IntroPhase>(() => { try { return reduced || sessionStorage.getItem('energy-bot-intro') || sessionStorage.getItem('electra-intro') ? 'ready' : 'anticipation'; } catch { return reduced ? 'ready' : 'anticipation'; } });
   const strikeRef = useRef(onStrike); const stopRef = useRef(onStop);
   useEffect(() => { strikeRef.current = onStrike; stopRef.current = onStop; }, [onStrike, onStop]);
   const timeline = useRef<gsap.core.Timeline | null>(null);
-  const finish = useCallback(() => { timeline.current?.kill(); setPhase('ready'); stopRef.current(); try { sessionStorage.setItem('electra-intro', '1'); } catch { /* optional persistence */ } }, []);
+  const finish = useCallback(() => { timeline.current?.kill(); setPhase('ready'); stopRef.current(); try { sessionStorage.setItem('energy-bot-intro', '1'); } catch { /* optional persistence */ } }, []);
   useEffect(() => {
     if (reduced) { finish(); return; }
     if (phase === 'ready' && run === 0) return;
