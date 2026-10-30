@@ -201,9 +201,10 @@ ${passagesText}
 
 Instructions:
 1. Provide accurate, thorough, line-by-line answers based on the report text and data above.
-2. If tables or equipment listings are requested (e.g. Connected Fan Load, Indoor Lighting Load, Air Conditioning Load, Transformer, APFC, DG sets), format them clearly into Markdown tables with headers (Location, Equipment/Lamp, Quantity, Watts/kW, Operating Hours, kWh).
-3. If the user asks in Tamil (தமிழ்), respond in Tamil with technical terms preserved. If asked in another language, respond in that language. Otherwise use English.
-4. Output STRICT JSON ONLY matching this format:
+2. If tables or equipment listings are requested (e.g. Connected Fan Load, Indoor Lighting Load, Air Conditioning Load, Transformer, APFC, DG sets), format them cleanly.
+3. Keep text natural and clean. Do NOT use markdown bold asterisks (**) or star symbols around numbers or titles, because answers are spoken aloud by voice synthesizers.
+4. If the user asks in Tamil (தமிழ்), respond in Tamil with technical terms preserved. If asked in another language, respond in that language. Otherwise use English.
+5. Output STRICT JSON ONLY matching this format:
 {
   "answer": "Your comprehensive answer with markdown tables if requested...",
   "citations": [

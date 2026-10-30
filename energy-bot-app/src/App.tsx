@@ -33,9 +33,11 @@ import {
   Wind,
   X,
   Zap,
+  MessageSquare,
+  Trash2,
   type LucideIcon,
 } from "lucide-react";
-import { ConnectedCopilot } from "./components/experience/ConnectedCopilot";
+import { ConnectedCopilot, type Message } from "./components/experience/ConnectedCopilot";
 import { VoiceControls } from "./components/experience/VoiceControls";
 import {
   ElectricCursor,
@@ -106,6 +108,14 @@ function EnergyBotMark({ size = 28 }: { size?: number }) {
   );
 }
 
+export type ChatSession = {
+  id: string;
+  title: string;
+  mode: ChatMode;
+  messages: Message[];
+  createdAt: number;
+};
+
 /* ─── Main App ──────────────────────────────────────────────────────────── */
 export default function App() {
   // Theme
@@ -118,6 +128,113 @@ export default function App() {
   const [sidebarOpen,  setSidebarOpen]  = useState(true);
   const [mobileOpen,   setMobileOpen]   = useState(false);
   const [activeMode,   setActiveMode]   = useState<ChatMode>("report");
+
+  // Multi-session chat history (ChatGPT / Gemini style)
+  const [sessions, setSessions] = useState<ChatSession[]>(() => {
+    try {
+      const stored = localStorage.getItem("energy-bot-sessions");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch { /* ok */ }
+    return [
+      {
+        id: "session-1",
+        title: "Energy Audit Analysis",
+        mode: "report",
+        messages: [],
+        createdAt: Date.now(),
+      },
+    ];
+  });
+
+  const [activeSessionId, setActiveSessionId] = useState<string>(() => {
+    try {
+      const stored = localStorage.getItem("energy-bot-active-session");
+      if (stored) return stored;
+    } catch { /* ok */ }
+    return "session-1";
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("energy-bot-sessions", JSON.stringify(sessions));
+      localStorage.setItem("energy-bot-active-session", activeSessionId);
+    } catch { /* ok */ }
+  }, [sessions, activeSessionId]);
+
+  const activeSession = sessions.find(s => s.id === activeSessionId) || sessions[0];
+
+  const handleNewConversation = () => {
+    const newId = crypto.randomUUID();
+    const newSession: ChatSession = {
+      id: newId,
+      title: "New conversation",
+      mode: activeMode,
+      messages: [],
+      createdAt: Date.now(),
+    };
+    setSessions(prev => [newSession, ...prev]);
+    setActiveSessionId(newId);
+    setMobileOpen(false);
+    setToast("New conversation started.");
+    setTimeout(() => setToast(""), 2500);
+  };
+
+  const handleSelectSession = (id: string) => {
+    setActiveSessionId(id);
+    const target = sessions.find(s => s.id === id);
+    if (target) {
+      setActiveMode(target.mode);
+    }
+    setMobileOpen(false);
+  };
+
+  const handleDeleteSession = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (sessions.length <= 1) {
+      const freshId = crypto.randomUUID();
+      const fresh: ChatSession = {
+        id: freshId,
+        title: "New conversation",
+        mode: activeMode,
+        messages: [],
+        createdAt: Date.now(),
+      };
+      setSessions([fresh]);
+      setActiveSessionId(freshId);
+      return;
+    }
+    const filtered = sessions.filter(s => s.id !== id);
+    setSessions(filtered);
+    if (activeSessionId === id) {
+      setActiveSessionId(filtered[0].id);
+      setActiveMode(filtered[0].mode);
+    }
+  };
+
+  const handleSaveSessionMessages = (msgs: Message[], titleCandidate?: string) => {
+    setSessions(prev =>
+      prev.map(s => {
+        if (s.id !== activeSessionId) return s;
+        let newTitle = s.title;
+        if (
+          (s.title === "New conversation" || s.title === "Energy Audit Analysis") &&
+          titleCandidate &&
+          titleCandidate.trim()
+        ) {
+          const clean = titleCandidate.trim().replace(/^Ask Energy Bot:?\s*/i, "");
+          newTitle = clean.length > 26 ? clean.slice(0, 26) + "…" : clean;
+        }
+        return {
+          ...s,
+          messages: msgs,
+          title: newTitle,
+        };
+      })
+    );
+  };
 
   // Demo mode state
   const [devices,   setDevices]   = useState(initialDevices);
@@ -437,8 +554,9 @@ export default function App() {
           {/* New chat */}
           <button
             className="new-chat-btn"
-            onClick={() => { setMobileOpen(false); }}
+            onClick={handleNewConversation}
             aria-label="New conversation"
+            title="Start a new conversation"
           >
             <Plus size={15} />
             New conversation
@@ -463,6 +581,37 @@ export default function App() {
                 </span>
               </button>
             ))}
+          </div>
+
+          {/* Recent Conversations (ChatGPT / Gemini style logging) */}
+          <div className="sidebar-history-container">
+            <div className="sidebar-section-label" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span>Recent Chats</span>
+              <span style={{ fontSize: 10, opacity: 0.65 }}>{sessions.length}</span>
+            </div>
+            <div className="sidebar-history-list">
+              {sessions.map(s => (
+                <div
+                  key={s.id}
+                  className={`history-item${s.id === activeSessionId ? " active" : ""}`}
+                  onClick={() => handleSelectSession(s.id)}
+                  title={s.title}
+                >
+                  <MessageSquare size={13} className="history-item-icon" />
+                  <span className="history-item-title">{s.title}</span>
+                  {sessions.length > 1 && (
+                    <button
+                      className="history-item-delete"
+                      onClick={(e) => handleDeleteSession(s.id, e)}
+                      title="Delete conversation"
+                      aria-label="Delete conversation"
+                    >
+                      <Trash2 size={12} />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
 
           {/* Sidebar footer */}
@@ -559,6 +708,8 @@ export default function App() {
               demo={demoPanel}
               activeMode={activeMode}
               onModeChange={m => setActiveMode(m as ChatMode)}
+              sessionMessages={activeSession?.messages || []}
+              onSaveSessionMessages={handleSaveSessionMessages}
             />
           </motion.div>
         </div>

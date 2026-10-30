@@ -28,7 +28,7 @@ import {
 import type { ChatMode, Citation, ReportStatus } from "../../lib/chatApi";
 
 /* ─── Types ─────────────────────────────────────────────────────────────── */
-type Message = {
+export type Message = {
   id: string;
   role: "user" | "assistant";
   text: string;
@@ -59,11 +59,48 @@ const WELCOMES: Record<ChatMode, string> = {
     "Ask about circuits, machines, power systems, electronics, or energy efficiency. For report-specific questions, switch to Audit report mode.",
 };
 
+/* ─── Speech Sanitizer (removes markdown, asterisks, and formats speech) ── */
+export function cleanTextForSpeech(text: string): string {
+  if (!text) return "";
+  return text
+    // Strip markdown code blocks
+    .replace(/```[\s\S]*?```/g, "")
+    .replace(/`([^`]+)`/g, "$1")
+    // Strip markdown bold / italic asterisks and underscores (**word** -> word)
+    .replace(/\*{1,3}([^*]+)\*{1,3}/g, "$1")
+    .replace(/_{1,3}([^_]+)_{1,3}/g, "$1")
+    // Strip markdown headings
+    .replace(/^#{1,6}\s+/gm, "")
+    // Strip citations like [PDF page 60], (PDF page 60)
+    .replace(/\[(?:PDF|printed)?\s*page\s*\d+[^\]]*\]/gi, "")
+    .replace(/\((?:PDF|printed)?\s*page\s*\d+[^)]*\)/gi, "")
+    // Convert mathematical and unit symbols into clean natural speech
+    .replace(/\s*\+\s*/g, " plus ")
+    .replace(/\s*=\s*/g, " equals ")
+    .replace(/(\d+)\s*\/\s*(\d+)/g, "$1 out of $2")
+    .replace(/\s*\/\s*/g, " per ")
+    .replace(/%/g, " percent ")
+    .replace(/&/g, " and ")
+    .replace(/\bkW\b/gi, " kilowatts ")
+    .replace(/\bkWh\b/gi, " kilowatt-hours ")
+    .replace(/\bkVA\b/gi, " kilovolt-amps ")
+    .replace(/\bHz\b/gi, " hertz ")
+    // Remove rogue asterisks, hashes, brackets, tildes
+    .replace(/[*~#^<>{}[\]|\\]/g, " ")
+    // Remove leading list dashes or bullets
+    .replace(/^\s*[-•*]\s+/gm, "")
+    // Convert newlines to natural pauses
+    .replace(/\n+/g, ". ")
+    // Collapse excess spaces
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
 /* ─── Voice Controls (inline, lightweight) ───────────────────────────── */
 type Rec = {
   lang: string; continuous: boolean; interimResults: boolean;
   onresult: ((e: { results: { transcript: string }[][] }) => void) | null;
-  onerror: (() => void) | null;
+  onerror: ((e: { error: string }) => void) | null;
   onend: (() => void) | null;
   start: () => void; stop: () => void; abort: () => void;
 };
@@ -83,12 +120,15 @@ function VoiceBtn({
   useEffect(() => {
     if (!speaking || !reply || !("speechSynthesis" in window)) return;
     window.speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(reply);
-    u.lang = languageCode;
+    const cleaned = cleanTextForSpeech(reply);
+    if (!cleaned) return;
+    const u = new SpeechSynthesisUtterance(cleaned);
+    const safeLang = (!languageCode || languageCode === "auto") ? "en-IN" : languageCode;
+    u.lang = safeLang;
     const v = window.speechSynthesis.getVoices()
-      .find(x => x.lang.split("-")[0] === languageCode.split("-")[0]);
+      .find(x => x.lang.split("-")[0] === safeLang.split("-")[0]);
     if (v) u.voice = v;
-    u.rate = 1;
+    u.rate = 1.05;
     window.speechSynthesis.speak(u);
     return () => window.speechSynthesis.cancel();
   }, [reply, speaking, languageCode]);
@@ -97,41 +137,86 @@ function VoiceBtn({
     recRef.current?.abort();
   }, []);
 
-  const listen = () => {
-    if (listening) { recRef.current?.stop(); setListening(false); return; }
+  const listen = async () => {
+    if (listening) {
+      recRef.current?.stop();
+      setListening(false);
+      onNotice("");
+      return;
+    }
     const api = window as unknown as {
       SpeechRecognition?: new () => Rec;
       webkitSpeechRecognition?: new () => Rec;
     };
     const SR = api.SpeechRecognition || api.webkitSpeechRecognition;
-    if (!SR) { onNotice("Voice input is unavailable in this browser. Please type your question."); return; }
+    if (!SR) {
+      onNotice("Voice input is not supported in this browser. Please use Google Chrome or Microsoft Edge.");
+      return;
+    }
+
+    // Trigger browser microphone permission dialog if not yet granted
+    if (navigator?.mediaDevices?.getUserMedia) {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        // Immediately release the audio stream so SpeechRecognition can bind to it
+        stream.getTracks().forEach(track => track.stop());
+      } catch (err) {
+        onNotice("Microphone permission was blocked. Please click the icon in your address bar to allow microphone.");
+        return;
+      }
+    }
+
     const inst = new SR();
     recRef.current = inst;
-    inst.lang = languageCode;
+    const safeLang = (!languageCode || languageCode === "auto") ? "en-IN" : languageCode;
+    inst.lang = safeLang;
     inst.continuous = false;
     inst.interimResults = false;
-    inst.onresult = e => { onTranscript(e.results[0][0].transcript); setListening(false); };
-    inst.onerror  = () => { setListening(false); onNotice("Microphone unavailable. Please type your question."); };
-    inst.onend    = () => setListening(false);
-    try { inst.start(); setListening(true); }
-    catch { setListening(false); onNotice("Microphone unavailable."); }
+    inst.onresult = e => {
+      const transcript = e.results[0][0].transcript;
+      onTranscript(transcript);
+      setListening(false);
+      onNotice("");
+    };
+    inst.onerror = (e: { error: string }) => {
+      setListening(false);
+      const err = e?.error;
+      if (err === "no-speech") {
+        onNotice("No speech detected. Please click the mic and speak clearly.");
+      } else if (err === "not-allowed" || err === "permission-denied") {
+        onNotice("Microphone permission blocked. Please allow microphone access in your browser settings.");
+      } else if (err === "audio-capture") {
+        onNotice("No microphone found on your device.");
+      } else {
+        onNotice("Voice recognition encountered an issue. Please try again or type.");
+      }
+    };
+    inst.onend = () => setListening(false);
+    try {
+      inst.start();
+      setListening(true);
+      onNotice("Listening... Please speak your question now.");
+    } catch {
+      setListening(false);
+      onNotice("Microphone could not start. Please verify browser permissions.");
+    }
   };
 
   return (
     <div className="voice-controls" style={{ display: "flex", alignItems: "center", gap: 4 }}>
       <button
         className={`icon-button${listening ? " mic-active" : ""}`}
-        onClick={listen}
+        onClick={() => void listen()}
         aria-label={listening ? "Stop listening" : "Dictate a question"}
         title={listening ? "Stop listening" : "Speak your question"}
       >
         {listening ? <MicOff size={16} /> : <Mic size={16} />}
       </button>
       <button
-        className="icon-button"
+        className={`icon-button${speaking ? " active" : ""}`}
         onClick={() => setSpeaking(s => !s)}
         aria-label={speaking ? "Mute voice replies" : "Enable voice replies"}
-        title={speaking ? "Mute voice replies" : "Enable voice replies"}
+        title={speaking ? "Voice answers enabled (click to mute)" : "Voice answers muted (click to listen)"}
       >
         {speaking ? <Volume2 size={16} /> : <VolumeX size={16} />}
       </button>
@@ -162,15 +247,19 @@ export function ConnectedCopilot({
   demo,
   activeMode,
   onModeChange,
+  sessionMessages,
+  onSaveSessionMessages,
 }: {
   demo: ReactNode;
   activeMode?: ChatMode | "demo";
   onModeChange?: (m: ChatMode | "demo") => void;
+  sessionMessages?: Message[];
+  onSaveSessionMessages?: (messages: Message[], titleCandidate?: string) => void;
 }) {
   const [mode, setMode] = useState<ChatMode | "demo">(activeMode ?? "report");
   const [language, setLanguage]       = useState("auto");
   const [conversations, setConversations] = useState<Record<ChatMode, Message[]>>({
-    report: [], electrical: [],
+    report: sessionMessages || [], electrical: [],
   });
   const [input, setInput]     = useState("");
   const [busy,  setBusy]      = useState(false);
@@ -188,7 +277,17 @@ export function ConnectedCopilot({
   const inputRef  = useRef<HTMLTextAreaElement>(null);
   const reduced   = useReducedMotion();
 
-  const messages = mode === "demo" ? [] : conversations[mode as ChatMode];
+  const messages = mode === "demo" ? [] : (sessionMessages ?? conversations[mode as ChatMode]);
+
+  // Synchronize when sessionMessages changes from parent (switching chats or new chat)
+  useEffect(() => {
+    if (sessionMessages !== undefined && mode !== "demo") {
+      setConversations(c => ({
+        ...c,
+        [mode as ChatMode]: sessionMessages,
+      }));
+    }
+  }, [sessionMessages, mode]);
 
   // Sync external mode prop
   useEffect(() => {
@@ -273,7 +372,9 @@ export function ConnectedCopilot({
       .map(({ role, text }) => ({ role, text }));
 
     const userMsg: Message = { id: crypto.randomUUID(), role: "user", text: question.trim() };
-    setConversations(c => ({ ...c, [activeMode]: [...c[activeMode], userMsg] }));
+    const withUser = [...conversations[activeMode], userMsg];
+    setConversations(c => ({ ...c, [activeMode]: withUser }));
+    onSaveSessionMessages?.(withUser, userMsg.text);
 
     const ctrl = new AbortController();
     pending.current = ctrl;
@@ -291,15 +392,22 @@ export function ConnectedCopilot({
         citations: result.citations,
         language: result.language,
       };
-      setConversations(c => ({ ...c, [activeMode]: [...c[activeMode], reply] }));
+      const withReply = [...withUser, reply];
+      setConversations(c => ({ ...c, [activeMode]: withReply }));
+      onSaveSessionMessages?.(withReply);
     } catch (err) {
       const text = ctrl.signal.aborted
         ? "The request timed out or was cancelled. Please try again."
         : err instanceof Error ? err.message : "The request could not be completed.";
+      const withError: Message[] = [
+        ...withUser,
+        { id: crypto.randomUUID(), role: "assistant", text, error: true },
+      ];
       setConversations(c => ({
         ...c,
-        [activeMode]: [...c[activeMode], { id: crypto.randomUUID(), role: "assistant", text, error: true }],
+        [activeMode]: withError,
       }));
+      onSaveSessionMessages?.(withError);
     } finally {
       clearTimeout(timeout);
       lock.current = false;
