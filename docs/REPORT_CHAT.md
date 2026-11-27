@@ -3,7 +3,7 @@
 ## What is implemented
 
 - **Audit report:** the Node API reads the fixed private Supabase object, extracts PDF text, translates follow-up questions into English search queries using Groq, retrieves relevant pages using BM25-style text ranking, and asks Groq for a grounded answer in the selected language.
-- **Electrical Q&A:** general electrical, electronics, energy-use, solar, and bill-calculation explanations using Groq, without claiming report evidence. Select this mode for questions that are not about the audit.
+- **Electrical Q&A:** general electrical, electronics, energy-use, solar, and bill-calculation explanations using Groq, without claiming report evidence. In Audit Report mode, greetings and clearly general knowledge questions are routed here automatically; questions about audit findings remain citation-grounded.
 - **Microgrid demo:** the existing local simulator, isolated from campus report facts.
 - Source references identify physical PDF pages and, where recognized, the printed page label. Expand a citation to inspect its original-language quotation.
 - A reported quotation must exist in the exact source text sent to the model. An unknown page, invented quotation, or claimed supported answer without citations produces an error instead of an unverified answer. This validates quotations, not every inference made by the language model; users should still check the original report for consequential decisions.

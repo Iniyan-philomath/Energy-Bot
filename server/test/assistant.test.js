@@ -38,7 +38,10 @@ function assistantFor(result, inspect = () => {}) {
       inspect(messages, ++calls);
       return JSON.stringify(
         calls === 1
-          ? { query: "main transformer rating capacity kVA" }
+          ? {
+              intent: "report",
+              query: "main transformer rating capacity kVA",
+            }
           : result,
       );
     },
@@ -122,13 +125,70 @@ test("general electrical questions never download the report or return report ci
   assert.deepEqual(result.citations, []);
   assert.equal(result.document, undefined);
 });
+test("general knowledge questions asked in report mode are routed to electrical answers", async () => {
+  let calls = 0;
+  const answer = createAssistant({
+    filename: "audit.pdf",
+    reports: {
+      get: async () => {
+        throw new Error("general question should not load the report");
+      },
+    },
+    complete: async (messages) => {
+      calls++;
+      if (calls === 1) {
+        assert.match(messages[0].content, /Classify the latest user request/);
+        return JSON.stringify({ intent: "general", query: "" });
+      }
+      assert.match(messages[0].content, /do not decline simply because the audit report/);
+      return JSON.stringify({
+        answer: "An inductor stores energy in a magnetic field when current flows through it.",
+        supported: true,
+        language: "en-IN",
+        citations: [],
+      });
+    },
+  });
+  const result = await answer({
+    ...input,
+    question: "What is an inductor?",
+  });
+  assert.equal(calls, 2);
+  assert.equal(result.mode, "electrical");
+  assert.deepEqual(result.citations, []);
+  assert.match(result.answer, /magnetic field/);
+});
+test("greetings in report mode receive a conversational response without report lookup", async () => {
+  let calls = 0;
+  const answer = createAssistant({
+    filename: "audit.pdf",
+    reports: { get: async () => { throw new Error("greeting must not load report"); } },
+    complete: async () => {
+      calls++;
+      return JSON.stringify(
+        calls === 1
+          ? { intent: "greeting", query: "" }
+          : {
+              answer: "Hello! I can help with the audit or general electrical questions.",
+              supported: true,
+              language: "en-IN",
+              citations: [],
+            },
+      );
+    },
+  });
+  const result = await answer({ ...input, question: "hi" });
+  assert.equal(result.mode, "electrical");
+  assert.match(result.answer, /Hello/);
+  assert.deepEqual(result.citations, []);
+});
 test("electrical mode gives grounded solar estimate guidance without inventing user inputs", async () => {
   const answer = createAssistant({
     filename: "audit.pdf",
     reports: { get: async () => { throw new Error("should not download"); } },
     complete: async (messages) => {
-      assert.match(messages[0].content, /monthly kWh use, tariff, system size/);
-      assert.match(messages[0].content, /Do not invent the user's tariff/);
+      assert.match(messages[0].content, /solar savings/);
+      assert.match(messages[0].content, /instead of inventing personal usage, tariff/);
       return JSON.stringify({
         answer: "Share your location, monthly kWh use, tariff, and proposed panel size for an estimate.",
         supported: true,
@@ -153,7 +213,10 @@ test("private storage failures do not fall back to fabricated answers", async ()
       },
     },
     complete: async () => {
-      throw new Error("must not call model");
+      return JSON.stringify({
+        intent: "report",
+        query: "audit report facts",
+      });
     },
   });
   await assert.rejects(answer(input), { code: "REPORT_UNAVAILABLE" });
