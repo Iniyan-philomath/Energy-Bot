@@ -28,6 +28,9 @@ export function readConfig(env = process.env) {
     throw new Error("SUPABASE_URL must be a Supabase HTTPS project URL.");
   const bucket = env.AUDIT_BUCKET || "energy-audits";
   const objectPath = env.AUDIT_OBJECT_PATH || "sce-energy-audit-2025-2026.pdf";
+  const speechRegion = env.AZURE_SPEECH_REGION || "";
+  if (speechRegion && !/^[a-z0-9]+$/.test(speechRegion))
+    throw new Error("AZURE_SPEECH_REGION must be a region name such as eastus.");
   if (
     !/^[\w-]+$/.test(bucket) ||
     !objectPath.toLowerCase().endsWith(".pdf") ||
@@ -45,5 +48,7 @@ export function readConfig(env = process.env) {
     supabaseKey: env.SUPABASE_SECRET_KEY || env.SUPABASE_SERVICE_ROLE_KEY || "",
     groqKey: env.GROQ_API_KEY || "",
     model: env.GROQ_MODEL || "openai/gpt-oss-120b",
+    speechKey: env.AZURE_SPEECH_KEY || "",
+    speechRegion,
   };
 }

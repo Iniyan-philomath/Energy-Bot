@@ -21,11 +21,16 @@ const answer = createAssistant({
   reports,
   filename: config.objectPath.split("/").at(-1),
 });
-const app = createApp({ answer, reports, config });
+const app = createApp({
+  answer,
+  reports,
+  config,
+  synthesizeSpeech: providers.synthesizeSpeech,
+});
 const server = app.listen(config.port, "0.0.0.0", () => {
   console.log(`Energy Bot API listening on port ${config.port}.`);
   console.log(
-    `Supabase credential: ${config.supabaseKey ? "configured" : "missing"}; Groq credential: ${config.groqKey ? "configured" : "missing"}.`,
+    `Supabase credential: ${config.supabaseKey ? "configured" : "missing"}; Groq credential: ${config.groqKey ? "configured" : "missing"}; Azure Speech: ${config.speechKey && config.speechRegion ? "configured" : "missing"}.`,
   );
 });
 process.on("SIGTERM", () => server.close(() => process.exit(0)));

@@ -2,7 +2,13 @@ import express from "express";
 import { rateLimit } from "express-rate-limit";
 import { ServiceError } from "./errors.js";
 import { validateChat } from "./assistant.js";
-export function createApp({ answer, reports, config, limit = 12 }) {
+export function createApp({
+  answer,
+  reports,
+  config,
+  synthesizeSpeech,
+  limit = 12,
+}) {
   const app = express();
   app.disable("x-powered-by");
   app.set("trust proxy", 1);
@@ -36,6 +42,7 @@ export function createApp({ answer, reports, config, limit = 12 }) {
     res.json({
       status: "ok",
       configured: !!(config.groqKey && config.supabaseKey),
+      speechConfigured: !!(config.speechKey && config.speechRegion),
     }),
   );
   app.use(
@@ -48,7 +55,7 @@ export function createApp({ answer, reports, config, limit = 12 }) {
       message: { error: "RATE_LIMITED" },
     }),
   );
-  app.use(express.json({ limit: "24kb" }));
+  app.use(express.json({ limit: "32kb" }));
   app.get("/api/report", async (_req, res, next) => {
     try {
       const report = await reports.get();
@@ -92,6 +99,40 @@ export function createApp({ answer, reports, config, limit = 12 }) {
         next(error);
       } finally {
         inFlight--;
+      }
+    },
+  );
+  let speechInFlight = 0;
+  app.post(
+    "/api/speech",
+    rateLimit({
+      windowMs: 60000,
+      limit: 20,
+      standardHeaders: "draft-8",
+      legacyHeaders: false,
+      message: { error: "RATE_LIMITED" },
+    }),
+    async (req, res, next) => {
+      if (speechInFlight >= 3)
+        return res.status(429).json({ error: "SERVER_BUSY" });
+      speechInFlight++;
+      try {
+        if (typeof synthesizeSpeech !== "function")
+          throw new ServiceError("SPEECH_NOT_CONFIGURED");
+        const { text, language } = req.body || {};
+        if (
+          typeof text !== "string" ||
+          !text.trim() ||
+          text.length > 6000 ||
+          typeof language !== "string"
+        )
+          throw new ServiceError("INVALID_SPEECH_REQUEST", 400);
+        const audio = await synthesizeSpeech(text, language);
+        res.type("audio/mpeg").send(audio);
+      } catch (error) {
+        next(error);
+      } finally {
+        speechInFlight--;
       }
     },
   );

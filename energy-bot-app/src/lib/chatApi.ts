@@ -124,3 +124,29 @@ export const askAssistant = (
   },
   signal: AbortSignal,
 ): Promise<ApiReply> => request<ApiReply>("/api/chat", signal, body);
+
+export async function synthesizeSpeech(
+  text: string,
+  language: string,
+  signal: AbortSignal,
+): Promise<Blob> {
+  let response: Response;
+  try {
+    response = await fetch(`${base}/api/speech`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text, language }),
+      signal,
+    });
+  } catch (error) {
+    if (signal.aborted) throw error;
+    throw new Error("SERVER_UNREACHABLE");
+  }
+  if (!response.ok) {
+    const data = await response.json().catch(() => null);
+    throw new Error(data?.error || "SPEECH_PROVIDER_UNAVAILABLE");
+  }
+  if (!response.headers.get("content-type")?.includes("audio/"))
+    throw new Error("SPEECH_PROVIDER_UNAVAILABLE");
+  return response.blob();
+}

@@ -122,6 +122,29 @@ test("general electrical questions never download the report or return report ci
   assert.deepEqual(result.citations, []);
   assert.equal(result.document, undefined);
 });
+test("electrical mode gives grounded solar estimate guidance without inventing user inputs", async () => {
+  const answer = createAssistant({
+    filename: "audit.pdf",
+    reports: { get: async () => { throw new Error("should not download"); } },
+    complete: async (messages) => {
+      assert.match(messages[0].content, /monthly kWh use, tariff, system size/);
+      assert.match(messages[0].content, /Do not invent the user's tariff/);
+      return JSON.stringify({
+        answer: "Share your location, monthly kWh use, tariff, and proposed panel size for an estimate.",
+        supported: true,
+        language: "en-IN",
+        citations: [],
+      });
+    },
+  });
+  const result = await answer({
+    ...input,
+    mode: "electrical",
+    question: "How can solar reduce my bill and how much can I save?",
+  });
+  assert.deepEqual(result.citations, []);
+  assert.match(result.answer, /monthly kWh use/);
+});
 test("private storage failures do not fall back to fabricated answers", async () => {
   const answer = createAssistant({
     reports: {
@@ -211,4 +234,5 @@ test("configuration rejects signed URLs and arbitrary source hosts", () => {
     }),
   );
   assert.throws(() => readConfig({ AUDIT_OBJECT_PATH: "../other.pdf" }));
+  assert.throws(() => readConfig({ AZURE_SPEECH_REGION: "https://example.com" }));
 });

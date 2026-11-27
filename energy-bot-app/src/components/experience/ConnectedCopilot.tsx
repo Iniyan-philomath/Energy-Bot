@@ -24,6 +24,7 @@ import {
   askAssistant,
   getReportStatus,
   languageOptions,
+  synthesizeSpeech,
 } from "../../lib/chatApi";
 import type { ChatMode, Citation, ReportStatus } from "../../lib/chatApi";
 import { getUiText } from "../../lib/uiTranslations";
@@ -50,14 +51,17 @@ const PROMPTS: Record<ChatMode, { label: string; icon: string; chipClass: string
     { label: "What is the difference between kW and kWh?", icon: "💡", chipClass: "chip-icon-blue" },
     { label: "How does a transformer work?",     icon: "🔧", chipClass: "chip-icon-teal" },
     { label: "What causes low power factor?",    icon: "📊", chipClass: "chip-icon-coral" },
+    { label: "What is an inductor, and where is it used?", icon: "🧲", chipClass: "chip-icon-violet" },
+    { label: "How do I calculate capacitance?", icon: "🧮", chipClass: "chip-icon-blue" },
+    { label: "How could rooftop solar reduce my electricity bill?", icon: "☀️", chipClass: "chip-icon-teal" },
   ],
 };
 
 const WELCOMES: Record<ChatMode, string> = {
   report:
-    "Ask about the Saranathan College energy audit. Answers include PDF page references and verbatim source quotes. Charts and scanned pages may need manual review.",
+    "Ask about the Saranathan College energy audit. Answers include PDF page references and verbatim source quotes. For general questions about circuits, capacitance, solar, or electricity bills, choose Electrical Q&A above.",
   electrical:
-    "Ask about circuits, machines, power systems, electronics, or energy efficiency. For report-specific questions, switch to Audit report mode.",
+    "Ask general questions about circuits, inductors, capacitance, solar panels, electricity bills, and energy. For a solar estimate, include your location, monthly kWh use, tariff, system size, and installation cost. For report-specific answers, switch to Audit report mode.",
 };
 
 /* ─── Speech Sanitizer (removes markdown, asterisks, and formats speech) ── */
@@ -129,40 +133,87 @@ function VoiceBtn({
   const transcript = useRef("");
   const finished = useRef(false);
   const finishRef = useRef<() => void>(() => {});
+  const stopSpeechRef = useRef<() => void>(() => {});
 
   useEffect(() => {
     if (reply === initialReply.current) return;
     initialReply.current = reply;
-    if (!speaking || !reply || !("speechSynthesis" in window)) return;
-    const synthesis = window.speechSynthesis;
+    if (!speaking || !reply) return;
     const cleaned = cleanTextForSpeech(reply);
     if (!cleaned) return;
     const safeLang = (!languageCode || languageCode === "auto") ? "en-IN" : languageCode;
     let cancelled = false;
+    const controller = new AbortController();
+    const synthesis = "speechSynthesis" in window ? window.speechSynthesis : null;
     let utterance: SpeechSynthesisUtterance | null = null;
-    const speak = () => {
-      if (cancelled || utterance) return;
+    let audio: HTMLAudioElement | null = null;
+    let audioUrl: string | null = null;
+    const cleanupAudio = () => {
+      if (audioUrl) URL.revokeObjectURL(audioUrl);
+      audioUrl = null;
+    };
+    const cancel = () => {
+      cancelled = true;
+      controller.abort();
+      audio?.pause();
+      if (audio) audio.src = "";
+      cleanupAudio();
+      synthesis?.cancel();
+    };
+    stopSpeechRef.current = cancel;
+    const speakInBrowser = () => {
+      if (cancelled || !synthesis || utterance) return;
       const voices = synthesis.getVoices();
       const voice = voices.find(item => item.lang.toLowerCase() === safeLang.toLowerCase())
         ?? voices.find(item => item.lang.split("-")[0].toLowerCase() === safeLang.split("-")[0].toLowerCase());
+      if (!voice) {
+        onNotice(`No ${safeLang} voice is available. Configure Azure Speech on the API or install a matching voice in your device.`);
+        return;
+      }
       utterance = new SpeechSynthesisUtterance(cleaned);
       utterance.lang = safeLang;
-      if (voice) utterance.voice = voice;
+      utterance.voice = voice;
       utterance.rate = 1;
+      utterance.onerror = () => {
+        if (!cancelled) onNotice("Speech playback failed. Please try again.");
+      };
       synthesis.speak(utterance);
     };
-    synthesis.cancel();
-    if (synthesis.getVoices().length) speak();
-    else {
-      synthesis.addEventListener("voiceschanged", speak, { once: true });
-      window.setTimeout(speak, 500);
-    }
+    void (async () => {
+      try {
+        const audioBlob = await synthesizeSpeech(cleaned, safeLang, controller.signal);
+        if (cancelled) return;
+        audioUrl = URL.createObjectURL(audioBlob);
+        audio = new Audio(audioUrl);
+        audio.addEventListener("ended", cleanupAudio, { once: true });
+        audio.addEventListener("error", () => {
+          if (!cancelled) onNotice("Speech playback failed. Please try again.");
+          cleanupAudio();
+        }, { once: true });
+        await audio.play();
+      } catch {
+        if (cancelled) return;
+        audio?.pause();
+        if (audio) audio.src = "";
+        cleanupAudio();
+        if (!synthesis) {
+          onNotice("Speech playback is unavailable. Please use a browser with audio support.");
+          return;
+        }
+        synthesis.cancel();
+        if (synthesis.getVoices().length) speakInBrowser();
+        else {
+          synthesis.addEventListener("voiceschanged", speakInBrowser, { once: true });
+          window.setTimeout(speakInBrowser, 500);
+        }
+      }
+    })();
     return () => {
-      cancelled = true;
-      synthesis.removeEventListener("voiceschanged", speak);
-      synthesis.cancel();
+      cancel();
+      synthesis?.removeEventListener("voiceschanged", speakInBrowser);
+      if (stopSpeechRef.current === cancel) stopSpeechRef.current = () => {};
     };
-  }, [reply, speaking, languageCode]);
+  }, [reply, speaking, languageCode, onNotice]);
 
   useEffect(() => {
     try { localStorage.setItem("energy-bot-voice-enabled", String(speaking)); } catch { /* optional preference */ }
@@ -178,7 +229,7 @@ function VoiceBtn({
       finishRef.current();
       return;
     }
-    if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+    stopSpeechRef.current();
     const api = window as unknown as {
       SpeechRecognition?: new () => Rec;
       webkitSpeechRecognition?: new () => Rec;
@@ -285,7 +336,7 @@ function VoiceBtn({
         onClick={() => {
           setSpeaking(current => {
             const next = !current;
-            if (!next && "speechSynthesis" in window) window.speechSynthesis.cancel();
+            if (!next) stopSpeechRef.current();
             return next;
           });
         }}
@@ -650,7 +701,7 @@ export function ConnectedCopilot({
                       const promptKeys = mode === "report"
                         ? ["promptAuditSummary", "promptAuditLosses", "promptPowerFactor", "promptImprovements"] as const
                         : ["promptExplainPowerFactor", "promptKwKwh", "promptTransformer", "promptLowPowerFactor"] as const;
-                      const prompt = t(promptKeys[index]);
+                      const prompt = promptKeys[index] ? t(promptKeys[index]) : label;
                       return (
                         <button
                           key={label}

@@ -23,7 +23,11 @@ async function running(t, overrides = {}) {
 test("health and report readiness expose no credentials", async (t) => {
   const url = await running(t);
   const health = await (await fetch(`${url}/health`)).json();
-  assert.deepEqual(health, { status: "ok", configured: true });
+  assert.deepEqual(health, {
+    status: "ok",
+    configured: true,
+    speechConfigured: false,
+  });
   const report = await (await fetch(`${url}/api/report`)).json();
   assert.equal(report.filename, "audit.pdf");
   assert.equal(report.pageCount, 73);
@@ -63,7 +67,7 @@ test("invalid JSON and oversized requests fail without model calls", async (t) =
     });
   assert.equal((await send("{bad")).status, 400);
   assert.equal(
-    (await send(JSON.stringify({ question: "x".repeat(30000) }))).status,
+    (await send(JSON.stringify({ question: "x".repeat(50000) }))).status,
     413,
   );
   assert.equal(
@@ -93,4 +97,30 @@ test("provider errors return stable codes without leaking details", async (t) =>
   const response = await fetch(`${url}/api/report`);
   assert.equal(response.status, 503);
   assert.deepEqual(await response.json(), { error: "REPORT_UNAVAILABLE" });
+});
+test("speech endpoint returns audio while keeping provider failures explicit", async (t) => {
+  const url = await running(t, {
+    synthesizeSpeech: async (text, language) => {
+      assert.equal(text, "வணக்கம்");
+      assert.equal(language, "ta-IN");
+      return Buffer.from("audio");
+    },
+  });
+  const response = await fetch(`${url}/api/speech`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text: "வணக்கம்", language: "ta-IN" }),
+  });
+  assert.equal(response.status, 200);
+  assert.match(response.headers.get("content-type"), /audio\/mpeg/);
+  assert.equal(Buffer.from(await response.arrayBuffer()).toString(), "audio");
+
+  const unconfiguredUrl = await running(t);
+  const unconfigured = await fetch(`${unconfiguredUrl}/api/speech`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text: "Hello", language: "en-IN" }),
+  });
+  assert.equal(unconfigured.status, 503);
+  assert.deepEqual(await unconfigured.json(), { error: "SPEECH_NOT_CONFIGURED" });
 });

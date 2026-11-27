@@ -3,11 +3,11 @@
 ## What is implemented
 
 - **Audit report:** the Node API reads the fixed private Supabase object, extracts PDF text, translates follow-up questions into English search queries using Groq, retrieves relevant pages using BM25-style text ranking, and asks Groq for a grounded answer in the selected language.
-- **Electrical Q&A:** general electrical explanations using Groq, without claiming report evidence.
+- **Electrical Q&A:** general electrical, electronics, energy-use, solar, and bill-calculation explanations using Groq, without claiming report evidence. Select this mode for questions that are not about the audit.
 - **Microgrid demo:** the existing local simulator, isolated from campus report facts.
 - Source references identify physical PDF pages and, where recognized, the printed page label. Expand a citation to inspect its original-language quotation.
 - A reported quotation must exist in the exact source text sent to the model. An unknown page, invented quotation, or claimed supported answer without citations produces an error instead of an unverified answer. This validates quotations, not every inference made by the language model; users should still check the original report for consequential decisions.
-- English and all 22 Eighth Schedule languages are selectable, with automatic detection for text. Native browser speech uses the selected/detected locale; actual recognition and voices vary by browser. No universal spoken-language support is claimed.
+- English and all 22 Eighth Schedule languages are selectable, with automatic detection for text. When configured, Azure Speech synthesizes spoken answers using the matching locale voice; otherwise the browser falls back to a locally installed voice. Speech locale coverage depends on the provider's current voice catalog, so unsupported locales need a matching browser voice.
 
 ## Important access boundary
 
@@ -44,6 +44,8 @@ Set these variables **on the API Web Service**:
 | `SUPABASE_SECRET_KEY` | Secret key from this Supabase project's API Keys settings; enter privately in Render |
 | `GROQ_API_KEY` | Key from https://console.groq.com/keys; enter privately in Render |
 | `GROQ_MODEL` | `llama-3.3-70b-versatile` (must be available to your Groq account) |
+| `AZURE_SPEECH_KEY` | Optional Speech resource key; enter privately in Render to enable server-side multilingual speech |
+| `AZURE_SPEECH_REGION` | Region of that Speech resource, such as `eastus`; required with the key |
 | `AUDIT_BUCKET` | `energy-audits` |
 | `AUDIT_OBJECT_PATH` | `sce-energy-audit-2025-2026.pdf` |
 | `ALLOWED_ORIGINS` | `https://energybot.onrender.com` |
@@ -65,13 +67,14 @@ If the frontend gains a custom domain, add that exact origin to the API's `ALLOW
 
 ### C. Verify live operation
 
-1. Open `<API URL>/health`: `status` should be `ok`, `configured` should be `true`. This checks process health and credential presence, not credential validity.
+1. Open `<API URL>/health`: `status` should be `ok`, `configured` should be `true`, and `speechConfigured` should be `true` if Azure Speech has been set up. These flags check process health and credential presence, not credential validity.
 2. Open `<API URL>/api/report`: expect `ready: true`, `pageCount: 73`, and `modelConfigured: true`. This verifies the private Storage read and extraction; model authentication still needs a chat request.
 3. In Audit report mode ask **What faults were found in the APFC panels?** Expand the cited source. PDF page 30 (printed 24) contains panel 1 step 1 and panel 2 steps 1 and 8 faults.
 4. Ask about **BLDC fan savings and payback**. Relevant source pages are PDF 49–50. The report contains inconsistent fan counts; answers should acknowledge discrepancies rather than silently resolve them.
 5. Select Tamil and ask **மின்மாற்றியின் திறன் என்ன?** Confirm a Tamil answer and the original English source quote (main transformer: PDF page 7).
 6. Ask about a fact absent from the audit; expect an acknowledgement of insufficient evidence, not invented numbers.
 7. Switch to Electrical Q&A for a general concept, then Microgrid demo to verify campus facts and simulated home data remain separate.
+8. To enable server-side voice replies, create an Azure AI Speech resource and set `AZURE_SPEECH_KEY` and `AZURE_SPEECH_REGION` on the API Web Service. Keep the key backend-only. The API discovers available voices for the selected language and returns audio; if the locale has no Azure voice, the frontend tries an installed browser voice. Azure Speech usage may incur charges; review the resource's current pricing and quotas.
 
 Do not mark the service ready based solely on Render's green deployment badge.
 
@@ -83,6 +86,7 @@ Do not mark the service ready based solely on Render's green deployment badge.
 - Retrieval is lexical after a model-generated English query, not a complete vector database or whole-document mathematical audit. The model receives at most six ranked pages and 24,000 characters of context. Global summaries and cross-table arithmetic may need narrower questions and source checking.
 - Questions, recent conversation context and selected report excerpts are sent to Groq to generate answers. The app does not persist chats to Supabase; they remain in browser memory and disappear on reload.
 - The API is read-only against Storage. It does not upload, delete, or alter the audit.
+- The `/api/speech` endpoint sends up to 6,000 characters to Azure Speech when configured. It is rate-limited independently to 20 requests per minute per IP and is not an authenticated user feature; configure provider spending limits and add identity controls before broad public use.
 
 ## Local development and validation
 

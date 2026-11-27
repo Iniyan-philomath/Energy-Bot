@@ -1,8 +1,9 @@
 import { createClient } from "@supabase/supabase-js";
 import Groq from "groq-sdk";
+import { languages } from "./languages.js";
 import { MAX_PDF_BYTES } from "./report.js";
 import { ServiceError } from "./errors.js";
-export function createProviders(config) {
+export function createProviders(config, { fetchImpl = fetch } = {}) {
   const supabase = config.supabaseKey
     ? createClient(config.supabaseUrl, config.supabaseKey, {
         auth: {
@@ -19,6 +20,7 @@ export function createProviders(config) {
   const groq = config.groqKey
     ? new Groq({ apiKey: config.groqKey, timeout: 30000, maxRetries: 0 })
     : null;
+  let speechVoices;
   return {
     async download() {
       if (!supabase) throw new ServiceError("REPORT_NOT_CONFIGURED");
@@ -69,6 +71,82 @@ export function createProviders(config) {
       if (lastError?.status === 429) throw new ServiceError("MODEL_BUSY", 429);
       console.error("All Groq model attempts failed:", lastError);
       throw new ServiceError("MODEL_UNAVAILABLE", 502);
+    },
+    async synthesizeSpeech(text, language) {
+      if (!config.speechKey || !config.speechRegion)
+        throw new ServiceError("SPEECH_NOT_CONFIGURED");
+      if (
+        typeof text !== "string" ||
+        !text.trim() ||
+        text.length > 6000 ||
+        !Object.hasOwn(languages, language)
+      )
+        throw new ServiceError("INVALID_SPEECH_REQUEST", 400);
+
+      const baseUrl = `https://${config.speechRegion}.tts.speech.microsoft.com`;
+      try {
+        if (!speechVoices) {
+          speechVoices = (async () => {
+            const response = await fetchImpl(
+              `${baseUrl}/cognitiveservices/voices/list`,
+              {
+                headers: { "Ocp-Apim-Subscription-Key": config.speechKey },
+                signal: AbortSignal.timeout(10000),
+              },
+            );
+            if (!response.ok)
+              throw new ServiceError("SPEECH_PROVIDER_UNAVAILABLE", 502);
+            const voices = await response.json();
+            if (!Array.isArray(voices))
+              throw new ServiceError("SPEECH_PROVIDER_UNAVAILABLE", 502);
+            return voices;
+          })().catch((error) => {
+            speechVoices = undefined;
+            throw error;
+          });
+        }
+        const voices = await speechVoices;
+        const voice = voices.find(
+          (item) => item.Locale?.toLowerCase() === language.toLowerCase(),
+        );
+        if (!voice?.Name)
+          throw new ServiceError("SPEECH_LANGUAGE_UNSUPPORTED", 422);
+
+        const escapeXml = (value) =>
+          value.replace(/[&<>"']/g, (character) => ({
+            "&": "&amp;",
+            "<": "&lt;",
+            ">": "&gt;",
+            '"': "&quot;",
+            "'": "&apos;",
+          })[character]);
+        const ssml = `<speak version="1.0" xml:lang="${language}" xmlns="http://www.w3.org/2001/10/synthesis"><voice name="${escapeXml(voice.Name)}">${escapeXml(text.trim())}</voice></speak>`;
+        const response = await fetchImpl(
+          `${baseUrl}/cognitiveservices/v1`,
+          {
+            method: "POST",
+            headers: {
+              "Ocp-Apim-Subscription-Key": config.speechKey,
+              "Content-Type": "application/ssml+xml",
+              "X-Microsoft-OutputFormat": "audio-24khz-48kbitrate-mono-mp3",
+            },
+            body: ssml,
+            signal: AbortSignal.timeout(20000),
+          },
+        );
+        if (
+          !response.ok ||
+          !response.headers.get("content-type")?.startsWith("audio/")
+        )
+          throw new ServiceError("SPEECH_PROVIDER_UNAVAILABLE", 502);
+        const audio = Buffer.from(await response.arrayBuffer());
+        if (!audio.length)
+          throw new ServiceError("SPEECH_PROVIDER_UNAVAILABLE", 502);
+        return audio;
+      } catch (error) {
+        if (error instanceof ServiceError) throw error;
+        throw new ServiceError("SPEECH_PROVIDER_UNAVAILABLE", 502);
+      }
     },
   };
 }
