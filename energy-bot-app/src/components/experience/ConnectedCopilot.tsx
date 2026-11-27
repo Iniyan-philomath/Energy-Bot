@@ -100,16 +100,17 @@ export function cleanTextForSpeech(text: string): string {
 /* ─── Voice Controls (inline, lightweight) ───────────────────────────── */
 type Rec = {
   lang: string; continuous: boolean; interimResults: boolean;
-  onresult: ((e: { results: { transcript: string }[][] }) => void) | null;
+  onresult: ((e: { results: ArrayLike<{ 0: { transcript: string } }> }) => void) | null;
   onerror: ((e: { error: string }) => void) | null;
   onend: (() => void) | null;
   start: () => void; stop: () => void; abort: () => void;
 };
 
 function VoiceBtn({
-  onTranscript, reply, onNotice, languageCode = "en-IN",
+  onTranscript, onSubmitTranscript, reply, onNotice, languageCode = "en-IN",
 }: {
   onTranscript: (t: string) => void;
+  onSubmitTranscript: (t: string) => void;
   reply: string;
   onNotice: (m: string) => void;
   languageCode?: string;
@@ -124,6 +125,10 @@ function VoiceBtn({
   });
   const recRef = useRef<Rec | null>(null);
   const initialReply = useRef(reply);
+  const silenceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const transcript = useRef("");
+  const finished = useRef(false);
+  const finishRef = useRef<() => void>(() => {});
 
   useEffect(() => {
     if (reply === initialReply.current) return;
@@ -165,13 +170,12 @@ function VoiceBtn({
 
   useEffect(() => () => {
     recRef.current?.abort();
+    if (silenceTimer.current) clearTimeout(silenceTimer.current);
   }, []);
 
   const listen = async () => {
     if (listening) {
-      recRef.current?.stop();
-      setListening(false);
-      onNotice("");
+      finishRef.current();
       return;
     }
     if ("speechSynthesis" in window) window.speechSynthesis.cancel();
@@ -199,19 +203,44 @@ function VoiceBtn({
 
     const inst = new SR();
     recRef.current = inst;
+    transcript.current = "";
+    finished.current = false;
+    const finish = () => {
+      if (finished.current) return;
+      finished.current = true;
+      if (silenceTimer.current) clearTimeout(silenceTimer.current);
+      setListening(false);
+      inst.stop();
+      const text = transcript.current.trim();
+      if (text) {
+        onTranscript(text);
+        onSubmitTranscript(text);
+        onNotice("");
+      } else {
+        onNotice("No speech detected. Please try again.");
+      }
+    };
+    finishRef.current = finish;
+    const restartSilenceTimer = () => {
+      if (silenceTimer.current) clearTimeout(silenceTimer.current);
+      silenceTimer.current = setTimeout(finish, 3000);
+    };
     const safeLang = (!languageCode || languageCode === "auto")
       ? (navigator.language || "en-IN")
       : languageCode;
     inst.lang = safeLang;
-    inst.continuous = false;
-    inst.interimResults = false;
+    inst.continuous = true;
+    inst.interimResults = true;
     inst.onresult = e => {
-      const transcript = e.results[0][0].transcript;
-      onTranscript(transcript);
-      setListening(false);
-      onNotice("");
+      transcript.current = Array.from(
+        { length: e.results.length },
+        (_, index) => e.results[index][0].transcript,
+      ).join(" ").trim();
+      if (transcript.current) restartSilenceTimer();
     };
     inst.onerror = (e: { error: string }) => {
+      finished.current = true;
+      if (silenceTimer.current) clearTimeout(silenceTimer.current);
       setListening(false);
       const err = e?.error;
       if (err === "no-speech") {
@@ -224,12 +253,18 @@ function VoiceBtn({
         onNotice("Voice recognition encountered an issue. Please try again or type.");
       }
     };
-    inst.onend = () => setListening(false);
+    inst.onend = () => {
+      if (!finished.current) finish();
+      setListening(false);
+    };
     try {
       inst.start();
       setListening(true);
+      restartSilenceTimer();
       onNotice("Listening... Please speak your question now.");
     } catch {
+      finished.current = true;
+      if (silenceTimer.current) clearTimeout(silenceTimer.current);
       setListening(false);
       onNotice("Microphone could not start. Please verify browser permissions.");
     }
@@ -516,23 +551,20 @@ export function ConnectedCopilot({
           )}
         </div>
 
-        {/* Language selector (only in AI modes) */}
-        {mode !== "demo" && (
-          <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
-            <label htmlFor="reply-language" className="language-label">{t("language")}</label>
-            <select
-              id="reply-language"
-              className="language-dropdown"
-              value={language}
-              disabled={busy}
-              onChange={e => onLanguageChange?.(e.target.value)}
-            >
-              {languageOptions.map(([code, label]) => (
-                <option key={code} value={code}>{label}</option>
-              ))}
-            </select>
-          </div>
-        )}
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+          <label htmlFor="reply-language" className="language-label">{t("language")}</label>
+          <select
+            id="reply-language"
+            className="language-dropdown"
+            value={language}
+            disabled={busy}
+            onChange={e => onLanguageChange?.(e.target.value)}
+          >
+            {languageOptions.map(([code, label]) => (
+              <option key={code} value={code}>{label}</option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {/* ── Demo mode ── */}
@@ -744,6 +776,7 @@ export function ConnectedCopilot({
                 <div className="composer-actions">
                   <VoiceBtn
                     onTranscript={t => { setInput(t); if (inputRef.current) { inputRef.current.style.height = "auto"; inputRef.current.style.height = Math.min(inputRef.current.scrollHeight, 180) + "px"; } }}
+                    onSubmitTranscript={t => { void send(t); }}
                     reply={messages.filter(m => m.role === "assistant" && !m.error).at(-1)?.text || ""}
                     onNotice={setNotice}
                     languageCode={language === "auto"

@@ -149,7 +149,7 @@ export default function App() {
 
   const handleLanguageChange = (language: string) => {
     setReplyLanguage(language);
-    if (isUiLanguage(language)) setUiLanguage(language);
+    setUiLanguage(language === "auto" ? "en-IN" : language);
   };
 
   const handleDetectedLanguage = (language: string) => {
@@ -530,8 +530,10 @@ export default function App() {
             <div className="composer-actions">
               <VoiceControls
                 onTranscript={t => { setDemoInput(t); if (demoInput$.current) demoInput$.current.style.height = "auto"; }}
+                onSubmitTranscript={askDemo}
                 reply={demoMessages.filter(m => m.role === "assistant").at(-1)?.text || ""}
                 onNotice={msg => notify(msg)}
+                languageCode={replyLanguage === "auto" ? uiLanguage : replyLanguage}
               />
               <button className="composer-send" aria-label="Send message" disabled={demoThinking || !demoInput.trim()} onClick={() => askDemo(demoInput)}>
                 <ArrowUp size={18} />

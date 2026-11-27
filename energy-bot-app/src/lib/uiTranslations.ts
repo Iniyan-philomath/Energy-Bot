@@ -372,5 +372,5 @@ export function getUiText(language: string, key: UiTextKey): string {
 }
 
 export function isUiLanguage(language: string): boolean {
-  return Object.keys(translations).some(code => code === language);
+  return language === "en-IN" || Object.keys(translations).some(code => code === language);
 }

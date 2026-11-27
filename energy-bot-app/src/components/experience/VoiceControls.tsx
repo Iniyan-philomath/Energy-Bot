@@ -10,8 +10,8 @@ type Recognition = {
   lang: string;
   continuous: boolean;
   interimResults: boolean;
-  onresult: ((event: { results: { transcript: string }[][] }) => void) | null;
-  onerror: (() => void) | null;
+  onresult: ((event: { results: ArrayLike<{ 0: { transcript: string } }> }) => void) | null;
+  onerror: ((event: { error: string }) => void) | null;
   onend: (() => void) | null;
   start: () => void;
   stop: () => void;
@@ -20,11 +20,13 @@ type Recognition = {
 
 export function VoiceControls({
   onTranscript,
+  onSubmitTranscript,
   reply,
   onNotice,
   languageCode = "en-IN",
 }: {
   onTranscript: (text: string) => void;
+  onSubmitTranscript?: (text: string) => void;
   reply: string;
   onNotice: (message: string) => void;
   languageCode?: string;
@@ -35,19 +37,24 @@ export function VoiceControls({
     catch { return true; }
   });
   const recognition = useRef<Recognition | null>(null);
+  const silenceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const transcript = useRef("");
+  const finished = useRef(false);
+  const finishRef = useRef<() => void>(() => {});
 
   useEffect(() => {
     if (!speaking || !reply || !("speechSynthesis" in window)) return;
     const synthesis = window.speechSynthesis;
     const utterance = new SpeechSynthesisUtterance(reply);
-    utterance.lang = languageCode;
+    const safeLanguage = languageCode === "auto" ? navigator.language || "en-IN" : languageCode;
+    utterance.lang = safeLanguage;
     let cancelled = false;
     let spoken = false;
     const speak = () => {
       if (cancelled || spoken) return;
       const voices = synthesis.getVoices();
-      const voice = voices.find(v => v.lang.toLowerCase() === languageCode.toLowerCase())
-        ?? voices.find(v => v.lang.split("-")[0].toLowerCase() === languageCode.split("-")[0].toLowerCase());
+      const voice = voices.find(v => v.lang.toLowerCase() === safeLanguage.toLowerCase())
+        ?? voices.find(v => v.lang.split("-")[0].toLowerCase() === safeLanguage.split("-")[0].toLowerCase());
       if (voice) utterance.voice = voice;
       utterance.rate = 1;
       synthesis.speak(utterance);
@@ -73,12 +80,13 @@ export function VoiceControls({
   useEffect(
     () => () => {
       recognition.current?.abort();
+      if (silenceTimer.current) clearTimeout(silenceTimer.current);
     },
     [],
   );
 
   const listen = () => {
-    if (listening) { recognition.current?.stop(); setListening(false); return; }
+    if (listening) { finishRef.current(); return; }
     if ("speechSynthesis" in window) window.speechSynthesis.cancel();
     const api = window as unknown as {
       SpeechRecognition?: new () => Recognition;
@@ -88,14 +96,55 @@ export function VoiceControls({
     if (!SR) { onNotice("Voice input is unavailable. Please type your question."); return; }
     const inst = new SR();
     recognition.current = inst;
+    transcript.current = "";
+    finished.current = false;
+    const finish = () => {
+      if (finished.current) return;
+      finished.current = true;
+      if (silenceTimer.current) clearTimeout(silenceTimer.current);
+      setListening(false);
+      inst.stop();
+      const text = transcript.current.trim();
+      if (text) {
+        onTranscript(text);
+        onSubmitTranscript?.(text);
+        onNotice("");
+      } else {
+        onNotice("No speech detected. Please try again.");
+      }
+    };
+    finishRef.current = finish;
+    const restartSilenceTimer = () => {
+      if (silenceTimer.current) clearTimeout(silenceTimer.current);
+      silenceTimer.current = setTimeout(finish, 3000);
+    };
     inst.lang = languageCode === "auto" ? (navigator.language || "en-IN") : languageCode;
-    inst.continuous = false;
-    inst.interimResults = false;
-    inst.onresult = e => { onTranscript(e.results[0][0].transcript); setListening(false); };
-    inst.onerror  = () => { setListening(false); onNotice("Microphone unavailable. Please type your question."); };
-    inst.onend    = () => setListening(false);
-    try { inst.start(); setListening(true); }
-    catch { setListening(false); onNotice("Microphone unavailable."); }
+    inst.continuous = true;
+    inst.interimResults = true;
+    inst.onresult = e => {
+      transcript.current = Array.from(
+        { length: e.results.length },
+        (_, index) => e.results[index][0].transcript,
+      ).join(" ").trim();
+      if (transcript.current) restartSilenceTimer();
+    };
+    inst.onerror = e => {
+      finished.current = true;
+      if (silenceTimer.current) clearTimeout(silenceTimer.current);
+      setListening(false);
+      onNotice(e.error === "no-speech" ? "No speech detected. Please try again." : "Microphone unavailable. Please type your question.");
+    };
+    inst.onend = () => {
+      if (!finished.current) finish();
+      setListening(false);
+    };
+    try { inst.start(); setListening(true); restartSilenceTimer(); }
+    catch {
+      finished.current = true;
+      if (silenceTimer.current) clearTimeout(silenceTimer.current);
+      setListening(false);
+      onNotice("Microphone unavailable.");
+    }
   };
 
   return (
