@@ -148,6 +148,7 @@ function VoiceBtn({
     let utterance: SpeechSynthesisUtterance | null = null;
     let audio: HTMLAudioElement | null = null;
     let audioUrl: string | null = null;
+    let speechErrorCode = "";
     const cleanupAudio = () => {
       if (audioUrl) URL.revokeObjectURL(audioUrl);
       audioUrl = null;
@@ -167,7 +168,14 @@ function VoiceBtn({
       const voice = voices.find(item => item.lang.toLowerCase() === safeLang.toLowerCase())
         ?? voices.find(item => item.lang.split("-")[0].toLowerCase() === safeLang.split("-")[0].toLowerCase());
       if (!voice) {
-        onNotice(`No ${safeLang} voice is available. Configure Azure Speech on the API or install a matching voice in your device.`);
+        const guidance = speechErrorCode === "SPEECH_NOT_CONFIGURED"
+          ? "Add AZURE_SPEECH_KEY and AZURE_SPEECH_REGION to Render → energy-bot-api → Environment, then redeploy."
+          : speechErrorCode === "SPEECH_LANGUAGE_UNSUPPORTED"
+            ? "The Azure Speech resource has no voice for this language."
+            : speechErrorCode
+              ? "Check the Azure Speech key and region in the energy-bot-api service on Render."
+              : "Configure Azure Speech on the API.";
+        onNotice(`No ${safeLang} voice is available. ${guidance} You can also install a matching voice on your device.`);
         return;
       }
       utterance = new SpeechSynthesisUtterance(cleaned);
@@ -191,8 +199,9 @@ function VoiceBtn({
           cleanupAudio();
         }, { once: true });
         await audio.play();
-      } catch {
+      } catch (error) {
         if (cancelled) return;
+        speechErrorCode = error instanceof Error ? error.message : "";
         audio?.pause();
         if (audio) audio.src = "";
         cleanupAudio();

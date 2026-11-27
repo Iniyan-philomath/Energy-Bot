@@ -56,6 +56,10 @@ services:
         sync: false
       - key: GROQ_MODEL
         value: openai/gpt-oss-120b
+      - key: AZURE_SPEECH_KEY
+        sync: false
+      - key: AZURE_SPEECH_REGION
+        sync: false
       - key: AUDIT_BUCKET
         value: energy-audits
       - key: AUDIT_OBJECT_PATH
