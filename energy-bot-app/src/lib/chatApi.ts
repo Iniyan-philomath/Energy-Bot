@@ -46,7 +46,7 @@ export const languageOptions = [
   ["brx-IN", "Bodo"],
 ] as const;
 const base = String(
-  import.meta.env.VITE_API_BASE_URL || "https://energy-bot-api.onrender.com",
+  import.meta.env.VITE_API_BASE_URL || "https://electra-ai-api.onrender.com",
 ).replace(/\/+$/, "");
 export const apiConfigured = true;
 const errors: Record<string, string> = {
