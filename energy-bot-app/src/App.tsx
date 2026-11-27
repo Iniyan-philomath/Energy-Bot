@@ -49,6 +49,7 @@ import {
   playHudChirpSound,
   playLightningThunderSound,
 } from "./lib/soundFx";
+import { getUiText, isUiLanguage } from "./lib/uiTranslations";
 import "./App.css";
 
 /* ─── Constants ─────────────────────────────────────────────────────────── */
@@ -118,6 +119,43 @@ export type ChatSession = {
 
 /* ─── Main App ──────────────────────────────────────────────────────────── */
 export default function App() {
+  const [uiLanguage, setUiLanguage] = useState(() => {
+    try {
+      const saved = localStorage.getItem("energy-bot-language");
+      return saved && isUiLanguage(saved) ? saved : "en-IN";
+    } catch {
+      return "en-IN";
+    }
+  });
+  const [replyLanguage, setReplyLanguage] = useState(() => {
+    try {
+      const saved = localStorage.getItem("energy-bot-reply-language");
+      return saved === "auto" || (saved && isUiLanguage(saved)) ? saved : "auto";
+    } catch {
+      return "auto";
+    }
+  });
+  const t = (key: Parameters<typeof getUiText>[1]) => getUiText(uiLanguage, key);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("energy-bot-language", uiLanguage);
+    } catch { /* language preferences are optional */ }
+  }, [uiLanguage]);
+
+  useEffect(() => {
+    try { localStorage.setItem("energy-bot-reply-language", replyLanguage); } catch { /* language preferences are optional */ }
+  }, [replyLanguage]);
+
+  const handleLanguageChange = (language: string) => {
+    setReplyLanguage(language);
+    if (isUiLanguage(language)) setUiLanguage(language);
+  };
+
+  const handleDetectedLanguage = (language: string) => {
+    if (replyLanguage === "auto" && isUiLanguage(language)) setUiLanguage(language);
+  };
+
   // Theme
   const [theme, setTheme] = useState<"light" | "dark">(() => {
     try { return (localStorage.getItem("energy-bot-theme") as "light" | "dark") || (localStorage.getItem("electra-theme") as "light" | "dark") || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"); }
@@ -268,6 +306,10 @@ export default function App() {
     try { localStorage.setItem("energy-bot-theme", theme); } catch { /* ok */ }
   }, [theme]);
 
+  useEffect(() => {
+    document.documentElement.lang = uiLanguage;
+  }, [uiLanguage]);
+
   const toggleTheme = () => setTheme(t => t === "dark" ? "light" : "dark");
 
   // Solar simulation
@@ -338,10 +380,10 @@ export default function App() {
       {/* Metrics strip */}
       <div style={{ display: "flex", gap: 12, padding: "16px 20px 12px", borderBottom: "1px solid var(--border-subtle)", overflowX: "auto", flexShrink: 0 }}>
         {[
-          { label: "Solar",   value: `${solar.toFixed(2)} kW`, icon: <Sun size={14} />,      color: "var(--amber-400)" },
-          { label: "Load",    value: `${total.toFixed(2)} kW`, icon: <Activity size={14} />, color: "var(--violet-400)" },
-          { label: "Battery", value: "88 %",                   icon: <Battery size={14} />,  color: "var(--teal-400)" },
-          { label: "Grid",    value: `${grid >= 0 ? "+" : ""}${grid.toFixed(2)} kW`, icon: <Zap size={14} />, color: grid >= 0 ? "var(--success)" : "var(--coral-400)" },
+          { label: t("solar"),   value: `${solar.toFixed(2)} kW`, icon: <Sun size={14} />,      color: "var(--amber-400)" },
+          { label: t("load"),    value: `${total.toFixed(2)} kW`, icon: <Activity size={14} />, color: "var(--violet-400)" },
+          { label: t("battery"), value: "88 %",                   icon: <Battery size={14} />,  color: "var(--teal-400)" },
+          { label: t("grid"),    value: `${grid >= 0 ? "+" : ""}${grid.toFixed(2)} kW`, icon: <Zap size={14} />, color: grid >= 0 ? "var(--success)" : "var(--coral-400)" },
         ].map(m => (
           <div key={m.label} style={{
             display: "flex", alignItems: "center", gap: 8,
@@ -367,7 +409,7 @@ export default function App() {
           }}
         >
           {optimized ? <Check size={13} /> : <Sparkles size={13} />}
-          {optimized ? "Optimized" : "AI Optimize"}
+          {optimized ? t("optimized") : t("optimize")}
         </button>
       </div>
 
@@ -386,7 +428,7 @@ export default function App() {
               <button
                 role="switch"
                 aria-checked={d.active}
-                aria-label={`Toggle ${d.name}`}
+                aria-label={t(d.id === "ev" ? "deviceEv" : d.id === "climate" ? "deviceClimate" : d.id === "water" ? "deviceWater" : "deviceServer")}
                 onClick={() => {
                   setDevices(v => v.map(a => a.id === d.id ? { ...a, active: !a.active } : a));
                   setOptimized(false);
@@ -406,14 +448,14 @@ export default function App() {
                 }} />
               </button>
             </div>
-            <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{d.name}</div>
-            <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{d.detail}</div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{t(d.id === "ev" ? "deviceEv" : d.id === "climate" ? "deviceClimate" : d.id === "water" ? "deviceWater" : "deviceServer")}</div>
+            <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{t(d.id === "ev" ? "deviceEvDetail" : d.id === "climate" ? "deviceClimateDetail" : d.id === "water" ? "deviceWaterDetail" : "deviceServerDetail")}</div>
             <div style={{ fontSize: 13, fontWeight: 700, color: d.active ? "var(--accent-primary)" : "var(--text-muted)" }}>
               {d.active ? (d.watts / 1000).toFixed(2) : "0.00"} kW
             </div>
             <input
               type="range" min="100" max={d.max} step="50" value={d.watts}
-              aria-label={`${d.name} power`}
+              aria-label={`${t(d.id === "ev" ? "deviceEv" : d.id === "climate" ? "deviceClimate" : d.id === "water" ? "deviceWater" : "deviceServer")} power`}
               onChange={e => { setDevices(v => v.map(a => a.id === d.id ? { ...a, watts: Number(e.target.value) } : a)); setOptimized(false); }}
               style={{ width: "100%", accentColor: "var(--accent-primary)" }}
             />
@@ -547,7 +589,7 @@ export default function App() {
             </div>
             <div className="brand-text">
               <span className="brand-name">Energy Bot</span>
-              <span className="brand-subtitle">Energy Intelligence</span>
+              <span className="brand-subtitle">{t("brandSubtitle")}</span>
             </div>
           </div>
 
@@ -555,17 +597,17 @@ export default function App() {
           <button
             className="new-chat-btn"
             onClick={handleNewConversation}
-            aria-label="New conversation"
-            title="Start a new conversation"
+            aria-label={t("newConversation")}
+            title={t("newConversation")}
           >
             <Plus size={15} />
-            New conversation
+            {t("newConversation")}
           </button>
 
           {/* Mode navigation */}
           <div className="sidebar-section">
-            <div className="sidebar-section-label">Modes</div>
-            {MODE_ITEMS.map(({ id, label, Icon, description }) => (
+            <div className="sidebar-section-label">{t("modes")}</div>
+            {MODE_ITEMS.map(({ id, Icon }) => (
               <button
                 key={id}
                 className={`mode-tab${activeMode === id ? " active" : ""}`}
@@ -576,8 +618,8 @@ export default function App() {
                   <Icon size={15} />
                 </span>
                 <span style={{ flex: 1, minWidth: 0 }}>
-                  <span style={{ display: "block", fontSize: 14, fontWeight: activeMode === id ? 700 : 500 }}>{label}</span>
-                  <span style={{ display: "block", fontSize: 11, color: activeMode === id ? "var(--accent-primary)" : "var(--text-muted)", marginTop: 1 }}>{description}</span>
+                  <span style={{ display: "block", fontSize: 14, fontWeight: activeMode === id ? 700 : 500 }}>{t(id === "report" ? "auditReport" : id === "electrical" ? "electricalQa" : "microgridDemo")}</span>
+                  <span style={{ display: "block", fontSize: 11, color: activeMode === id ? "var(--accent-primary)" : "var(--text-muted)", marginTop: 1 }}>{t(id === "report" ? "auditQuestions" : id === "electrical" ? "electricalTopics" : "simulatedHomeEnergy")}</span>
                 </span>
               </button>
             ))}
@@ -586,7 +628,7 @@ export default function App() {
           {/* Recent Conversations (ChatGPT / Gemini style logging) */}
           <div className="sidebar-history-container">
             <div className="sidebar-section-label" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <span>Recent Chats</span>
+              <span>{t("recentChats")}</span>
               <span style={{ fontSize: 10, opacity: 0.65 }}>{sessions.length}</span>
             </div>
             <div className="sidebar-history-list">
@@ -603,8 +645,8 @@ export default function App() {
                     <button
                       className="history-item-delete"
                       onClick={(e) => handleDeleteSession(s.id, e)}
-                      title="Delete conversation"
-                      aria-label="Delete conversation"
+                      title={t("deleteConversation")}
+                      aria-label={t("deleteConversation")}
                     >
                       <Trash2 size={12} />
                     </button>
@@ -649,9 +691,9 @@ export default function App() {
             <div className="header-subtitle">
               <span className="header-report-chip">
                 <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--teal-500)", display: "inline-block" }} />
-                {activeMode === "report" ? "Audit Report" : activeMode === "electrical" ? "Electrical Q&A" : "Microgrid Demo"}
+                {t(activeMode === "report" ? "auditReport" : activeMode === "electrical" ? "electricalQa" : "microgridDemo")}
               </span>
-              Energy audit assistant
+              {t("energyAuditAssistant")}
             </div>
           </div>
 
@@ -707,6 +749,10 @@ export default function App() {
             <ConnectedCopilot
               demo={demoPanel}
               activeMode={activeMode}
+              language={replyLanguage}
+              uiLanguage={uiLanguage}
+              onLanguageChange={handleLanguageChange}
+              onDetectedLanguage={handleDetectedLanguage}
               onModeChange={m => setActiveMode(m as ChatMode)}
               sessionMessages={activeSession?.messages || []}
               onSaveSessionMessages={handleSaveSessionMessages}

@@ -1,0 +1,7 @@
+{
+  "name": "energy-bot",
+  "private": true,
+  "scripts": {
+    "dev": "npm --prefix energy-bot-app run dev"
+  }
+}

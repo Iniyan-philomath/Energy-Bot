@@ -30,22 +30,45 @@ export function VoiceControls({
   languageCode?: string;
 }) {
   const [listening, setListening] = useState(false);
-  const [speaking,  setSpeaking]  = useState(false);
+  const [speaking,  setSpeaking]  = useState(() => {
+    try { return localStorage.getItem("energy-bot-voice-enabled") !== "false"; }
+    catch { return true; }
+  });
   const recognition = useRef<Recognition | null>(null);
 
   useEffect(() => {
     if (!speaking || !reply || !("speechSynthesis" in window)) return;
-    window.speechSynthesis.cancel();
+    const synthesis = window.speechSynthesis;
     const utterance = new SpeechSynthesisUtterance(reply);
     utterance.lang = languageCode;
-    const voice = window.speechSynthesis
-      .getVoices()
-      .find(v => v.lang.split("-")[0] === languageCode.split("-")[0]);
-    if (voice) utterance.voice = voice;
-    utterance.rate = 1;
-    window.speechSynthesis.speak(utterance);
-    return () => window.speechSynthesis.cancel();
+    let cancelled = false;
+    let spoken = false;
+    const speak = () => {
+      if (cancelled || spoken) return;
+      const voices = synthesis.getVoices();
+      const voice = voices.find(v => v.lang.toLowerCase() === languageCode.toLowerCase())
+        ?? voices.find(v => v.lang.split("-")[0].toLowerCase() === languageCode.split("-")[0].toLowerCase());
+      if (voice) utterance.voice = voice;
+      utterance.rate = 1;
+      synthesis.speak(utterance);
+      spoken = true;
+    };
+    synthesis.cancel();
+    if (synthesis.getVoices().length) speak();
+    else {
+      synthesis.addEventListener("voiceschanged", speak, { once: true });
+      window.setTimeout(speak, 500);
+    }
+    return () => {
+      cancelled = true;
+      synthesis.removeEventListener("voiceschanged", speak);
+      synthesis.cancel();
+    };
   }, [reply, speaking, languageCode]);
+
+  useEffect(() => {
+    try { localStorage.setItem("energy-bot-voice-enabled", String(speaking)); } catch { /* optional preference */ }
+  }, [speaking]);
 
   useEffect(
     () => () => {
@@ -56,6 +79,7 @@ export function VoiceControls({
 
   const listen = () => {
     if (listening) { recognition.current?.stop(); setListening(false); return; }
+    if ("speechSynthesis" in window) window.speechSynthesis.cancel();
     const api = window as unknown as {
       SpeechRecognition?: new () => Recognition;
       webkitSpeechRecognition?: new () => Recognition;
@@ -64,7 +88,7 @@ export function VoiceControls({
     if (!SR) { onNotice("Voice input is unavailable. Please type your question."); return; }
     const inst = new SR();
     recognition.current = inst;
-    inst.lang = languageCode;
+    inst.lang = languageCode === "auto" ? (navigator.language || "en-IN") : languageCode;
     inst.continuous = false;
     inst.interimResults = false;
     inst.onresult = e => { onTranscript(e.results[0][0].transcript); setListening(false); };

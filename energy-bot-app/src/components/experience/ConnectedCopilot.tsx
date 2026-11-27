@@ -26,6 +26,7 @@ import {
   languageOptions,
 } from "../../lib/chatApi";
 import type { ChatMode, Citation, ReportStatus } from "../../lib/chatApi";
+import { getUiText } from "../../lib/uiTranslations";
 
 /* ─── Types ─────────────────────────────────────────────────────────────── */
 export type Message = {
@@ -114,24 +115,53 @@ function VoiceBtn({
   languageCode?: string;
 }) {
   const [listening, setListening]   = useState(false);
-  const [speaking,  setSpeaking]    = useState(false);
+  const [speaking,  setSpeaking]    = useState(() => {
+    try {
+      return localStorage.getItem("energy-bot-voice-enabled") !== "false";
+    } catch {
+      return true;
+    }
+  });
   const recRef = useRef<Rec | null>(null);
+  const initialReply = useRef(reply);
 
   useEffect(() => {
+    if (reply === initialReply.current) return;
+    initialReply.current = reply;
     if (!speaking || !reply || !("speechSynthesis" in window)) return;
-    window.speechSynthesis.cancel();
+    const synthesis = window.speechSynthesis;
     const cleaned = cleanTextForSpeech(reply);
     if (!cleaned) return;
-    const u = new SpeechSynthesisUtterance(cleaned);
     const safeLang = (!languageCode || languageCode === "auto") ? "en-IN" : languageCode;
-    u.lang = safeLang;
-    const v = window.speechSynthesis.getVoices()
-      .find(x => x.lang.split("-")[0] === safeLang.split("-")[0]);
-    if (v) u.voice = v;
-    u.rate = 1.05;
-    window.speechSynthesis.speak(u);
-    return () => window.speechSynthesis.cancel();
+    let cancelled = false;
+    let utterance: SpeechSynthesisUtterance | null = null;
+    const speak = () => {
+      if (cancelled || utterance) return;
+      const voices = synthesis.getVoices();
+      const voice = voices.find(item => item.lang.toLowerCase() === safeLang.toLowerCase())
+        ?? voices.find(item => item.lang.split("-")[0].toLowerCase() === safeLang.split("-")[0].toLowerCase());
+      utterance = new SpeechSynthesisUtterance(cleaned);
+      utterance.lang = safeLang;
+      if (voice) utterance.voice = voice;
+      utterance.rate = 1;
+      synthesis.speak(utterance);
+    };
+    synthesis.cancel();
+    if (synthesis.getVoices().length) speak();
+    else {
+      synthesis.addEventListener("voiceschanged", speak, { once: true });
+      window.setTimeout(speak, 500);
+    }
+    return () => {
+      cancelled = true;
+      synthesis.removeEventListener("voiceschanged", speak);
+      synthesis.cancel();
+    };
   }, [reply, speaking, languageCode]);
+
+  useEffect(() => {
+    try { localStorage.setItem("energy-bot-voice-enabled", String(speaking)); } catch { /* optional preference */ }
+  }, [speaking]);
 
   useEffect(() => () => {
     recRef.current?.abort();
@@ -144,6 +174,7 @@ function VoiceBtn({
       onNotice("");
       return;
     }
+    if ("speechSynthesis" in window) window.speechSynthesis.cancel();
     const api = window as unknown as {
       SpeechRecognition?: new () => Rec;
       webkitSpeechRecognition?: new () => Rec;
@@ -168,7 +199,9 @@ function VoiceBtn({
 
     const inst = new SR();
     recRef.current = inst;
-    const safeLang = (!languageCode || languageCode === "auto") ? "en-IN" : languageCode;
+    const safeLang = (!languageCode || languageCode === "auto")
+      ? (navigator.language || "en-IN")
+      : languageCode;
     inst.lang = safeLang;
     inst.continuous = false;
     inst.interimResults = false;
@@ -214,7 +247,13 @@ function VoiceBtn({
       </button>
       <button
         className={`icon-button${speaking ? " active" : ""}`}
-        onClick={() => setSpeaking(s => !s)}
+        onClick={() => {
+          setSpeaking(current => {
+            const next = !current;
+            if (!next && "speechSynthesis" in window) window.speechSynthesis.cancel();
+            return next;
+          });
+        }}
         aria-label={speaking ? "Mute voice replies" : "Enable voice replies"}
         title={speaking ? "Voice answers enabled (click to mute)" : "Voice answers muted (click to listen)"}
       >
@@ -249,15 +288,24 @@ export function ConnectedCopilot({
   onModeChange,
   sessionMessages,
   onSaveSessionMessages,
+  language: selectedLanguage,
+  uiLanguage = "en-IN",
+  onLanguageChange,
+  onDetectedLanguage,
 }: {
   demo: ReactNode;
   activeMode?: ChatMode | "demo";
   onModeChange?: (m: ChatMode | "demo") => void;
   sessionMessages?: Message[];
   onSaveSessionMessages?: (messages: Message[], titleCandidate?: string) => void;
+  language?: string;
+  uiLanguage?: string;
+  onLanguageChange?: (language: string) => void;
+  onDetectedLanguage?: (language: string) => void;
 }) {
   const [mode, setMode] = useState<ChatMode | "demo">(activeMode ?? "report");
-  const [language, setLanguage]       = useState("auto");
+  const language = selectedLanguage ?? "auto";
+  const t = (key: Parameters<typeof getUiText>[1]) => getUiText(uiLanguage, key);
   const [conversations, setConversations] = useState<Record<ChatMode, Message[]>>({
     report: sessionMessages || [], electrical: [],
   });
@@ -392,6 +440,7 @@ export function ConnectedCopilot({
         citations: result.citations,
         language: result.language,
       };
+      onDetectedLanguage?.(result.language);
       const withReply = [...withUser, reply];
       setConversations(c => ({ ...c, [activeMode]: withReply }));
       onSaveSessionMessages?.(withReply);
@@ -439,8 +488,8 @@ export function ConnectedCopilot({
       <div className="language-select">
         {/* Mode tabs — compact pill row */}
         <div style={{ display: "flex", gap: 6, flex: 1 }}>
-          {([ ["report", "Audit Report", BookOpen], ["electrical", "Electrical Q&A", Zap], ["demo", "Microgrid Demo", Bot] ] as const).map(
-            ([value, label, Icon]) => (
+          {([ ["report", "auditReport", BookOpen], ["electrical", "electricalQa", Zap], ["demo", "microgridDemo", Bot] ] as const).map(
+            ([value, key, Icon]) => (
               <button
                 key={value}
                 disabled={busy}
@@ -460,8 +509,8 @@ export function ConnectedCopilot({
                 }}
               >
                 <Icon size={13} />
-                <span style={{ display: "none" }} className="tab-label-sm">{label}</span>
-                <span>{label}</span>
+                <span style={{ display: "none" }} className="tab-label-sm">{t(key)}</span>
+                <span>{t(key)}</span>
               </button>
             )
           )}
@@ -470,13 +519,13 @@ export function ConnectedCopilot({
         {/* Language selector (only in AI modes) */}
         {mode !== "demo" && (
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
-            <label htmlFor="reply-language" className="language-label">Language</label>
+            <label htmlFor="reply-language" className="language-label">{t("language")}</label>
             <select
               id="reply-language"
               className="language-dropdown"
               value={language}
               disabled={busy}
-              onChange={e => setLanguage(e.target.value)}
+              onChange={e => onLanguageChange?.(e.target.value)}
             >
               {languageOptions.map(([code, label]) => (
                 <option key={code} value={code}>{label}</option>
@@ -526,13 +575,10 @@ export function ConnectedCopilot({
                     transition={{ duration: 0.45, delay: 0.1 }}
                   >
                     <h1 className="welcome-heading">
-                      Hi, I'm{" "}
-                      <span className="accent-gradient">Energy Bot</span>.
+                      <span className="accent-gradient">{t("welcomeTitle")}</span>
                     </h1>
                     <p className="welcome-subheading">
-                      {mode === "report"
-                        ? "Ask questions about your energy audit, understand findings, and explore improvements — with evidence from the source PDF."
-                        : "Ask about circuits, power systems, machines, or energy efficiency. Explanations you can understand and act on."}
+                      {t(mode === "report" ? "welcomeReport" : "welcomeElectrical")}
                     </p>
                   </motion.div>
 
@@ -568,20 +614,26 @@ export function ConnectedCopilot({
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.45, delay: 0.25 }}
                   >
-                    {PROMPTS[mode as ChatMode].map(({ label, icon, chipClass }) => (
-                      <button
-                        key={label}
-                        className="prompt-chip"
-                        disabled={busy}
-                        onClick={() => void send(label)}
-                        aria-label={`Ask: ${label}`}
-                      >
-                        <span className={`prompt-chip-icon ${chipClass}`}>
-                          <span style={{ fontSize: 15 }}>{icon}</span>
-                        </span>
-                        <span className="prompt-chip-label">{label}</span>
-                      </button>
-                    ))}
+                    {PROMPTS[mode as ChatMode].map(({ label, icon, chipClass }, index) => {
+                      const promptKeys = mode === "report"
+                        ? ["promptAuditSummary", "promptAuditLosses", "promptPowerFactor", "promptImprovements"] as const
+                        : ["promptExplainPowerFactor", "promptKwKwh", "promptTransformer", "promptLowPowerFactor"] as const;
+                      const prompt = t(promptKeys[index]);
+                      return (
+                        <button
+                          key={label}
+                          className="prompt-chip"
+                          disabled={busy}
+                          onClick={() => void send(prompt)}
+                          aria-label={prompt}
+                        >
+                          <span className={`prompt-chip-icon ${chipClass}`}>
+                            <span style={{ fontSize: 15 }}>{icon}</span>
+                          </span>
+                          <span className="prompt-chip-label">{prompt}</span>
+                        </button>
+                      );
+                    })}
                   </motion.div>
 
                   {/* Trust line */}
@@ -695,7 +747,7 @@ export function ConnectedCopilot({
                     reply={messages.filter(m => m.role === "assistant" && !m.error).at(-1)?.text || ""}
                     onNotice={setNotice}
                     languageCode={language === "auto"
-                      ? messages.filter(m => m.language).at(-1)?.language || "en-IN"
+                      ? messages.filter(m => m.language).at(-1)?.language || navigator.language || "en-IN"
                       : language}
                   />
                   <button
