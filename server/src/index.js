@@ -1,11 +1,21 @@
 import { readConfig } from "./config.js";
 import { createProviders } from "./providers.js";
-import { createReportStore } from "./report.js";
+import { createIndex, createReportStore } from "./report.js";
 import { createAssistant } from "./assistant.js";
 import { createApp } from "./app.js";
+import reportPages from "./reportSnapshot.json" with { type: "json" };
 const config = readConfig();
 const providers = createProviders(config);
-const reports = createReportStore(providers.download);
+const reports = createReportStore(providers.download, {
+  fallback: {
+    pages: reportPages,
+    index: createIndex(reportPages),
+    pageCount: reportPages.length,
+    imageHeavyPages: reportPages
+      .filter((page) => page.text.trim().length < 150)
+      .map((page) => page.page),
+  },
+});
 const answer = createAssistant({
   complete: providers.complete,
   reports,

@@ -57,6 +57,7 @@ export function createApp({ answer, reports, config, limit = 12 }) {
         filename: config.objectPath.split("/").at(-1),
         pageCount: report.pageCount,
         imageHeavyPages: report.imageHeavyPages,
+        source: report.source || "storage",
         modelConfigured: !!config.groqKey,
       });
     } catch (error) {

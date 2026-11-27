@@ -177,6 +177,24 @@ test("report cache coalesces parallel downloads and retries failures", async () 
   await assert.rejects(retry.get());
   assert.equal(await retry.get(), report);
 });
+test("report storage failures use the bundled snapshot and mark its source", async () => {
+  const fallback = { ...report, source: "bundled" };
+  const store = createReportStore(
+    async () => {
+      throw new ServiceError("REPORT_UNAVAILABLE");
+    },
+    { fallback },
+  );
+  assert.deepEqual(await store.get(), fallback);
+  assert.equal(store.isReady(), true);
+});
+test("invalid stored PDFs do not silently fall back to the snapshot", async () => {
+  const store = createReportStore(
+    async () => Buffer.from("not a PDF"),
+    { fallback: report },
+  );
+  await assert.rejects(store.get(), { code: "REPORT_FORMAT_INVALID" });
+});
 test("non-PDF inputs are rejected before parsing", async () => {
   await assert.rejects(extractPdf(Buffer.from("<html>Unauthorized</html>")), {
     code: "REPORT_FORMAT_INVALID",

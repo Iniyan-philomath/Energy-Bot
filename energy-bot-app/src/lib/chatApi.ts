@@ -18,6 +18,7 @@ export type ReportStatus = {
   pageCount: number;
   imageHeavyPages: number[];
   modelConfigured: boolean;
+  source: "storage" | "bundled";
 };
 export const languageOptions = [
   ["auto", "Auto-detect"],

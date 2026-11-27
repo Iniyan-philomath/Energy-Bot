@@ -514,7 +514,7 @@ export function ConnectedCopilot({
     ? "Report service not connected"
     : checking ? "Connecting to report…"
     : statusError ? "Report unavailable"
-    : report ? `${report.pageCount} pages · ${report.modelConfigured ? "Ready" : "AI not connected"}`
+    : report ? `${report.pageCount} pages · ${report.source === "bundled" ? "Using saved report copy" : report.modelConfigured ? "Ready" : "AI not connected"}`
     : "Awaiting report";
 
   return (

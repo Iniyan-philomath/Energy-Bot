@@ -129,7 +129,7 @@ export async function extractPdf(bytes) {
 }
 export function createReportStore(
   download,
-  { ttlMs = 5 * 60_000, extract = extractPdf } = {},
+  { ttlMs = 5 * 60_000, extract = extractPdf, fallback } = {},
 ) {
   let cached;
   let pending;
@@ -139,7 +139,19 @@ export function createReportStore(
       if (cached && Date.now() < expiresAt) return cached;
       if (!pending)
         pending = (async () => {
-          const report = await extract(await download());
+          let report;
+          try {
+            report = await extract(await download());
+            report.source = "storage";
+          } catch (error) {
+            if (
+              !fallback ||
+              !["REPORT_NOT_CONFIGURED", "REPORT_UNAVAILABLE"].includes(error?.code)
+            )
+              throw error;
+            console.warn("Report storage unavailable; using bundled audit snapshot.");
+            report = { ...fallback, source: "bundled" };
+          }
           cached = report;
           expiresAt = Date.now() + ttlMs;
           return report;
